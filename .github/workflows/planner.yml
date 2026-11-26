@@ -6,7 +6,7 @@ run-name: planner
 on:
   push:
     branches: [main]
-    paths: ["spec/**", ".github/workflows/planner.yml"]
+    paths: ["spec/**", ".github/workflows/planner.yml", "scripts/pipeline/plan.sh", "prompts/planner.md"]
   workflow_dispatch:
 
 permissions:
