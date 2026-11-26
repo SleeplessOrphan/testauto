@@ -8,12 +8,13 @@ source "$(dirname "$0")/lib.sh"
 n=${ISSUE:-} pr=${PR:?} branch=${BRANCH:?} verdict=${VERDICT:-}
 run_url="$GITHUB_SERVER_URL/$GH_REPO/actions/runs/$GITHUB_RUN_ID"
 
-merge_error=""
+# merge runs inside $(...), a subshell, so its error goes through a file to reach the stall message.
+merge_error="" merge_log="$RUNNER_TEMP/merge-error.txt"
 merge() {
   local sha
   sha=$(gh pr view "$pr" --json headRefOid -q .headRefOid)
-  if ! merge_error=$(gh pr merge "$pr" --squash --delete-branch --match-head-commit "$sha" 2>&1); then
-    echo "$merge_error" >&2
+  if ! gh pr merge "$pr" --squash --delete-branch --match-head-commit "$sha" >"$merge_log" 2>&1; then
+    cat "$merge_log" >&2
     return 1
   fi
   sleep 5
@@ -60,7 +61,7 @@ case $verdict in
       comment "$n" "🔀 Merged #$pr as ${sha:0:7}. Next: deploy to staging and run the smoke tests."
       set_stage "$n" staging
       dispatch staging.yml main "$n" "sha=$sha" "issue=$n" "mode=task"
-    elif catch_up_with_main; then
+    elif merge_error=$(head -1 "$merge_log" 2>/dev/null); catch_up_with_main; then
       comment "$n" "🔄 Main moved while #$pr was in progress. Merged main into \`$branch\`; CI and review run again on the result.
 <!-- caught-up:1 -->"
       set_stage "$n" ci
