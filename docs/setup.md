@@ -21,7 +21,9 @@ Do these in order in your browser, after the pipeline pull request is merged. Ea
 3. Under **Target branches**, click **Add target** → **Include default branch**.
 4. Under **Rules**, make sure these are ticked:
    - **Restrict deletions**
-   - **Require a pull request before merging** (leave required approvals at 0)
+   - **Require a pull request before merging** (leave required approvals at 0). Click to expand it and untick
+     the option that asks for an extra approval for changes not attributed to a person (the agents' commits are
+     made by `github-actions[bot]`, so with it on GitHub refuses every automatic merge).
    - **Require status checks to pass**. Click **Add checks** and add each of these, typing the name and picking it from the list:
      `build`, `unit`, `e2e`, `docs-check`, `size-check`, `protected-files`, `adversary-verdict`
    - **Block force pushes**
