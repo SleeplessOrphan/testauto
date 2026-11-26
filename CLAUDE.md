@@ -23,6 +23,7 @@ correct answers to maths questions. Built autonomously, one small task at a time
 | `src/app/` | Pages and routes (App Router). `page.tsx` is the home page. |
 | `src/app/api/health/route.ts` | Health check used by the staging smoke test. Keep it. |
 | `src/lib/` | Plain TypeScript logic (game rules, question generation). Keep it free of React so it is unit-testable. |
+| `src/lib/maths/` | Maths question generation (`generate.ts` entry, types, rng, distractors, `topics/`). |
 | `tests/unit/` | Vitest tests, `*.test.ts`. |
 | `tests/e2e/` | Playwright tests run against a local production build at `/`. |
 | `tests/smoke/` | Playwright tests run against staging after every merge. |
