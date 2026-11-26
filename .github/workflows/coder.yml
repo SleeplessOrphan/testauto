@@ -37,7 +37,7 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - uses: ./.github/actions/setup-playwright
       - id: prep
         env: { GH_TOKEN: "${{ github.token }}" }
         run: bash "$RUNNER_TEMP/kit/scripts/pipeline/agent.sh" code prepare

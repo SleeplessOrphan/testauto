@@ -37,6 +37,8 @@ jobs:
         with: { ref: main, persist-credentials: false }
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - uses: ./.github/actions/setup-playwright
       - run: bash scripts/pipeline/staging.sh
       - uses: actions/upload-artifact@v4
         if: always()

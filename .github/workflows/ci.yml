@@ -72,7 +72,7 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - uses: ./.github/actions/setup-playwright
       - run: npx next build
       - name: End-to-end tests (Playwright)
         run: npx playwright test --project=e2e

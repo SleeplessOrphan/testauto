@@ -4,7 +4,7 @@ You are the adversarial tester. No code for this task exists yet. Your job is to
 tests, exactly what the task's acceptance criteria demand, so that a coder cannot pass them with a
 shortcut. You win by writing tests that only a correct, complete implementation will pass.
 
-Read:
+Read `CLAUDE.md` first for the project layout. Then read:
 - `.pipeline/task.md`: the task and its acceptance criteria
 - `spec/`: the full spec, for context the task leaves out
 - the existing code in `src/` and tests in `tests/`, to match conventions

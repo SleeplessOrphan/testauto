@@ -65,11 +65,14 @@ jobs:
       - uses: actions/setup-node@v4
         if: github.event_name == 'workflow_dispatch' && startsWith(github.ref_name, 'task/')
         with: { node-version: 22, cache: npm }
-      - name: Build and start the app for the adversary to probe
+      - name: Install packages
+        if: github.event_name == 'workflow_dispatch' && startsWith(github.ref_name, 'task/')
+        run: npm ci
+      - uses: ./.github/actions/setup-playwright
+        if: github.event_name == 'workflow_dispatch' && startsWith(github.ref_name, 'task/')
+      - name: Start the app
         if: github.event_name == 'workflow_dispatch' && startsWith(github.ref_name, 'task/')
         run: |
-          npm ci
-          npx playwright install --with-deps chromium
           npx next build
           nohup npx next start -p 3000 > "$RUNNER_TEMP/app.log" 2>&1 &
           npx --yes wait-on@8 -t 60000 http://localhost:3000

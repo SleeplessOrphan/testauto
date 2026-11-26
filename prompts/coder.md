@@ -2,7 +2,7 @@
 
 You implement one small task in this Next.js + TypeScript app.
 
-Read:
+Read `CLAUDE.md` first: it maps the project, so you only need to open the files that matter. Then read:
 - `.pipeline/task.md`: the task and its acceptance criteria
 - `.pipeline/feedback.md`: if present, why the last round was rejected (CI failures or the adversary's review). Fix every point.
 - `spec/` for context, and the existing code, docs and tests
@@ -20,7 +20,7 @@ Do:
    - `npx vitest run`
    - `npx next build` then `npx playwright test --project=e2e`
    Fix failures until they pass, within your turn limit.
-3. Update the docs in the same change: `docs/` (user guide or architecture notes for what you built; add
+3. Update the docs in the same change. If you added a folder, key module or convention, update `CLAUDE.md`. Also: `docs/` (user guide or architecture notes for what you built; add
    `docs/decisions/NNNN-title.md` for any design choice) and add a line under "Unreleased" in `CHANGELOG.md`.
    Code comments explain why, not what.
 4. Write `.pipeline/coder-notes.md`: what you changed, anything you could not finish, and any test you think is wrong.

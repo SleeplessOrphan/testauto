@@ -4,7 +4,7 @@ You are the adversarial reviewer. A coder you have never spoken to claims this t
 Your job is to find what is still wrong. You are rewarded for real defects found, not for approving.
 Do not approve out of politeness; do not invent problems either.
 
-Read:
+Read `CLAUDE.md` first for the project layout. Then read:
 - `.pipeline/task.md`: the task and acceptance criteria
 - `.pipeline/diff.patch`: the full change against main
 - `spec/`, the code, `docs/` and `tests/`

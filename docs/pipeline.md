@@ -36,11 +36,18 @@ Workflows start each other with `workflow_dispatch`. That is deliberate: actions
 | Fully documented | `docs-check` fails if `src/` changed without `docs/` or `CHANGELOG.md`. The adversary also reviews the docs. |
 | Tests are logged | Unit and Playwright runs upload JUnit XML, the Playwright report, traces and screenshots as artifacts (kept 30 days). A run with no log fails. Every agent run's cost and result is a comment on the task issue. |
 | Staging in order | One task runs at a time. Staging runs one at a time (`concurrency: staging`), in merge order, and the next task starts only after staging passes or the task stalls. |
-| Bounded retries and spend | Up to 3 coder rounds on Sonnet, then one round on Opus, then stall. The same failures twice in a row skip straight to the Opus round. A task stalls once it has spent $3 (see `models.yaml`). Claude's turn limits cap each run; the Anthropic Console spend limit caps the month. |
+| Bounded retries and spend | Up to 3 coder rounds on Sonnet, then one round on Opus, then stall. The same failures twice in a row skip straight to the Opus round. A task stalls once it has spent $1 (see `models.yaml`). Claude's turn limits cap each run; the Anthropic Console spend limit caps the month. |
 | Timeouts flag stops | Every job has `timeout-minutes`. The watchdog (hourly) stalls a task whose stage workflow failed, or that sat in a stage longer than `stage_minutes` with nothing running, and posts the last log lines. |
 
 A stalled task gets the `stalled` label, a comment with the reason, and a mention of you on the
 **System alerts** issue, which emails you. Other queued tasks carry on.
+
+## Keeping costs down
+
+- **Prompt caching** is on by default in Claude Code, so text an agent re-reads within a run costs about 90% less.
+- **`CLAUDE.md`** is a one-page map of the project. Every agent reads it first instead of searching the repo, and the coder keeps it current.
+- **Saved plans.** The planner saves each plan on the closed **Planner output** issue, keyed by a fingerprint of `spec/`. If a run fails after planning, run **planner** again from the Actions tab and it reuses the saved plan for free. A spec that has already become tasks is never planned twice.
+- **Cached installs.** npm packages and the Playwright browser are cached between runs, which saves Actions minutes.
 
 ## Controls
 
