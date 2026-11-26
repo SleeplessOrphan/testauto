@@ -1,5 +1,5 @@
 name: adversary-tests
-run-name: adversary-tests #${{ inputs.issue }}
+run-name: "adversary-tests #${{ inputs.issue }}"
 # Stage 1 of a task: the adversary writes failing tests from the acceptance criteria, before any code exists.
 on:
   workflow_dispatch:

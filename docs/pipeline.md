@@ -36,7 +36,7 @@ Workflows start each other with `workflow_dispatch`. That is deliberate: actions
 | Fully documented | `docs-check` fails if `src/` changed without `docs/` or `CHANGELOG.md`. The adversary also reviews the docs. |
 | Tests are logged | Unit and Playwright runs upload JUnit XML, the Playwright report, traces and screenshots as artifacts (kept 30 days). A run with no log fails. Every agent run's cost and result is a comment on the task issue. |
 | Staging in order | One task runs at a time. Staging runs one at a time (`concurrency: staging`), in merge order, and the next task starts only after staging passes or the task stalls. |
-| Bounded retries and spend | Up to 3 coder rounds on Sonnet, then one round on Opus, then stall. The same failures twice in a row skip straight to the Opus round. A task stalls once it has spent $1 (see `models.yaml`). Claude's turn limits cap each run; the Anthropic Console spend limit caps the month. |
+| Bounded retries and spend | Up to 3 coder rounds on Sonnet, then one round on Opus, then stall. The same failures twice in a row skip straight to the Opus round. A task stalls once it has spent $1.50 (see `models.yaml`). Claude's turn limits cap each run; the Anthropic Console spend limit caps the month. |
 | Timeouts flag stops | Every job has `timeout-minutes`. The watchdog (hourly) stalls a task whose stage workflow failed, or that sat in a stage longer than `stage_minutes` with nothing running, and posts the last log lines. |
 
 A stalled task gets the `stalled` label, a comment with the reason, and a mention of you on the
@@ -55,6 +55,10 @@ A stalled task gets the `stalled` label, a comment with the reason, and a mentio
 - **Add a task by hand:** open an issue describing it with acceptance criteria and add the label `task`.
 - **Retry a stalled task:** remove `stalled` and add `queued`. It starts again from scratch on a fresh branch.
 - **Change a model or limit:** edit `models.yaml` in your own pull request.
+
+## Runs "awaiting approval"
+
+GitHub also starts a `ci` and an `adversary-review` run when the pipeline opens or updates a task PR, and holds them for a maintainer's approval. They are not needed: the pipeline starts its own runs. Leave them alone. If one is approved anyway, its jobs skip.
 
 ## Your own pull requests
 

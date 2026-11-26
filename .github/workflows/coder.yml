@@ -1,5 +1,5 @@
 name: coder
-run-name: coder #${{ inputs.issue }} round ${{ inputs.round }}
+run-name: "coder #${{ inputs.issue }} round ${{ inputs.round }}"
 # Stage 2 of a task: the coder makes the adversary's tests pass and opens (or updates) the pull request.
 on:
   workflow_dispatch:

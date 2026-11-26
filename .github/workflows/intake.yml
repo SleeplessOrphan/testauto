@@ -1,5 +1,5 @@
 name: intake
-run-name: intake #${{ github.event.issue.number }}
+run-name: "intake #${{ github.event.issue.number }}"
 # Lets you add a task by hand: label any issue `task` and it joins the queue.
 # Closing the pause issue (or removing its `pause` label) resumes the pipeline.
 on:
