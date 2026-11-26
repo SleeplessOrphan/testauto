@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Arithmetic maths question generator (addition, subtraction, multiplication, division, squares, square roots) by difficulty. See `docs/maths-questions.md`. (#8)
 - Next.js + TypeScript starter app with a health endpoint, Vitest unit tests, Playwright end-to-end tests and staging smoke tests.
 - Autonomous pipeline in GitHub Actions: planner, adversary tests-first, coder, CI, adversary review with the `adversary-verdict` check, automatic merge, staging smoke test with automatic revert, dispatcher, hourly watchdog, pause switch. See `docs/pipeline.md`.
 - `vercel.json` pins the Vercel framework preset to Next.js (the project was created before the repo had an app).
