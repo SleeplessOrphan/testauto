@@ -35,5 +35,7 @@ Finish by writing `.pipeline/verdict.json`:
 ```
 
 - `approve`: no blocker or major findings. Minor findings may be listed.
-- `request_changes`: at least one blocker or major finding the coder can fix.
+- `request_changes`: at least one blocker or major finding the coder can fix. Any change that weakens a
+  check (excluding files from type checking or tests, loosening strict mode, ignoring build errors, skipping
+  tests) is always a blocker.
 - `escalate`: the task or spec itself is wrong or contradictory and a human must decide.

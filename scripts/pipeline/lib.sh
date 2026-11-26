@@ -40,6 +40,10 @@ remove_labels() { # issue label...
 
 add_labels() { local n=$1 l; shift; for l in "$@"; do gh issue edit "$n" --add-label "$l" >/dev/null; done; }
 
+# Files no agent may change: the pipeline itself, the spec, and every config that decides what the
+# type check, build and test runs cover (so the coder can't weaken a check instead of fixing the code).
+PROTECTED_RE='^(\.github/|scripts/|prompts/|spec/|models\.yaml$|playwright\.config\.ts$|vitest\.config\.ts$|tsconfig[^/]*\.json$|next\.config\.[a-z]+$|vercel\.json$|\.gitattributes$)'
+
 set_stage() { # issue stage
   local n=$1 s=$2 rm=() x
   for x in "${STAGES[@]}"; do [[ $x == "$s" ]] || rm+=("stage:$x"); done

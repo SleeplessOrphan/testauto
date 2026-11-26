@@ -29,9 +29,10 @@ Workflows start each other with `workflow_dispatch`. That is deliberate: actions
 
 | Requirement | How it is enforced |
 | --- | --- |
+| Tests must be sound | After the adversary writes the tests, the pipeline type-checks them. Errors other than missing code the task will add stop the task, so the coder is never pushed to weaken a check to get past them. The review treats any weakened check as a blocker. |
 | Agents can't mark their own work as passing | Agents only edit files. Shell steps commit, open PRs and merge. The merge only happens after the `adversary-verdict` job passes, and the ruleset on main makes GitHub refuse it unless every required check is green. |
 | The coder can't change the tests | Changes the coder makes under `tests/` are thrown away before committing, and `protected-files` fails if `tests/` differs from the adversary's last lock. |
-| Agents can't change the rules | Changes to `.github/`, `scripts/`, `prompts/`, `spec/`, `models.yaml` and the test configs are thrown away, and `protected-files` fails if any slip through. The scripts each workflow runs are copied from main before the agent starts. |
+| Agents can't change the rules | Changes to `.github/`, `scripts/`, `prompts/`, `spec/`, `models.yaml`, the test configs and the configs that decide what is type-checked and built (`tsconfig*.json`, `next.config.*`, `vercel.json`) are thrown away, and `protected-files` fails if any slip through. The scripts each workflow runs are copied from main before the agent starts. |
 | Small changes | `size-check` fails task PRs over 300 changed lines or 10 files (tests and the lockfile don't count). That stalls the task so it can be split. |
 | Fully documented | `docs-check` fails if `src/` changed without `docs/` or `CHANGELOG.md`. The adversary also reviews the docs. |
 | Tests are logged | Unit and Playwright runs upload JUnit XML, the Playwright report, traces and screenshots as artifacts (kept 30 days). A run with no log fails. Every agent run's cost and result is a comment on the task issue. |
@@ -56,14 +57,16 @@ A stalled task gets the `stalled` label, a comment with the reason, and a mentio
 - **Retry a stalled task:** remove `stalled` and add `queued`. It starts again from scratch on a fresh branch.
 - **Change a model or limit:** edit `models.yaml` in your own pull request.
 
-## Runs "awaiting approval"
+## Why there are no pull_request runs
 
-GitHub also starts a `ci` and an `adversary-review` run when the pipeline opens or updates a task PR, and holds them for a maintainer's approval. They are not needed: the pipeline starts its own runs. Leave them alone. If one is approved anyway, its jobs skip.
+GitHub holds `pull_request` runs on PRs opened by the pipeline until a maintainer approves them, and a held
+run blocks the merge even when every check is green. So `ci` and `adversary-review` run on pushes instead:
+the pipeline starts them on agent branches, and a push to any other branch (yours) starts them by itself.
 
 ## Your own pull requests
 
-CI runs on them as usual. The `adversary-verdict` check passes automatically for pull requests opened by
-the repository owner, so you can merge your own changes (for example, spec edits) once CI is green.
+CI runs on every push to your branch. The `adversary-verdict` check passes automatically for branches
+pushed by the repository owner, so you can merge your own changes (for example, spec edits) once CI is green.
 `size-check` and `protected-files` only apply to agent branches.
 
 ## Known limits in iteration one

@@ -66,7 +66,7 @@ cost=$(run_cost "$exec_file")
 model=${MODEL:-$(cfg ".roles.$(role_key "$role").model")}
 git_push_setup "$role-bot"
 branch=$(git rev-parse --abbrev-ref HEAD)
-PROTECTED='^(\.github/|scripts/|prompts/|spec/|tests/|models\.yaml$|playwright\.config\.ts$|vitest\.config\.ts$|\.pipeline/)'
+PROTECTED="${PROTECTED_RE%)}|tests/|\.pipeline/)"
 
 case $role in
   tests)
@@ -74,6 +74,17 @@ case $role in
     if git diff --cached --quiet; then
       comment "$n" "Adversary run wrote no tests. <!-- cost:$cost -->"
       stall "$n" "the adversary did not write any tests"
+      exit 0
+    fi
+    # The tests must type-check, apart from imports of code that doesn't exist yet. Otherwise the coder
+    # could only get them through by weakening the type check, which the protected files forbid.
+    type_errors=$(npx tsc --noEmit 2>&1 | grep -E '^tests/.*error TS' | grep -vE 'error TS(2307|2305|2614|2724|2339|2551|2353):' || true)
+    if [[ -n $type_errors ]]; then
+      comment "$n" "Adversary's tests have type errors the code can't fix. <!-- cost:$cost -->
+\`\`\`
+$(head -c 3000 <<<"$type_errors")
+\`\`\`"
+      stall "$n" "the adversary's tests don't type-check (see the comment above)"
       exit 0
     fi
     git commit -q -m "test: acceptance tests for #$n (adversary)"

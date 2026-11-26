@@ -29,6 +29,7 @@ correct answers to maths questions. Built autonomously, one small task at a time
 | `docs/` | User guide, architecture notes, `decisions/` for design records. |
 | `CHANGELOG.md` | One line per change under "Unreleased". |
 | `.github/`, `scripts/`, `prompts/`, `models.yaml` | The pipeline itself. Agents never edit these. |
+| `tsconfig.json`, `next.config.ts`, test configs | Decide what is type-checked, built and tested. Agents never edit these. |
 
 ## Commands
 

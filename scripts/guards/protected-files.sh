@@ -6,7 +6,7 @@ base=${1:?base commit} branch=${2:?branch}
 if [[ $branch != task/* ]]; then echo "Not an agent branch ($branch); protected-files skipped."; exit 0; fi
 n=${branch#task/}
 
-bad=$(git diff --name-only "$base" HEAD | grep -E '^(\.github/|scripts/|prompts/|spec/|models\.yaml$|playwright\.config\.ts$|vitest\.config\.ts$)' || true)
+bad=$(git diff --name-only "$base" HEAD | grep -E "$PROTECTED_RE" || true)
 if [[ -n $bad ]]; then
   echo "::error::This PR changes protected files:"; echo "$bad"
   exit 1
