@@ -1,9 +1,11 @@
 name: ci
 run-name: ci ${{ github.ref_name }}
-# The neutral referee. Runs on your own pull requests, and is started by the pipeline on agent
+# The neutral referee. Runs on your own pull requests and on main, and is started by the pipeline on agent
 # branches (task/* and revert/*). Every job name below is a required status check on main.
 on:
   pull_request:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       issue:
