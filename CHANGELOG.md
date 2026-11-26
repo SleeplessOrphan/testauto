@@ -12,3 +12,4 @@
 
 ### Changed
 - `coder.yml` is now started by the pipeline after the adversary's tests exist, instead of directly by the `task` label. The `task` label now queues the issue.
+- Homepage (`index.html`) that says hello. See `docs/homepage.md`. (#1)
