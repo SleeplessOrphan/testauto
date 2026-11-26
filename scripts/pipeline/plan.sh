@@ -32,7 +32,9 @@ case "$1" in
     count=$(jq '.tasks | length' .pipeline/plan.json)
     for i in $(seq 0 $((count - 1))); do
       title=$(jq -r ".tasks[$i].title" .pipeline/plan.json)
-      body=$(jq -r ".tasks[$i] | \"**\(.story // "")**\n\n\(.body)\n\n---\n_Planned from spec at commit ${GITHUB_SHA}._\"" .pipeline/plan.json)
+      body=$(jq -r --argjson i "$i" --arg sha "$GITHUB_SHA" \
+        '.tasks[$i] | (if (.story // "") != "" then "**\(.story)**\n\n" else "" end)
+          + "\(.body)\n\n---\n_Planned from spec at commit \($sha)._"' .pipeline/plan.json)
       url=$(gh issue create --title "$title" --body "$body" --label queued)
       created+=("#${url##*/}")
     done
