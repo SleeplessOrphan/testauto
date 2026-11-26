@@ -1,0 +1,2 @@
+# Keep both sides when two changes add lines to the changelog at the same time.
+CHANGELOG.md merge=union

@@ -8,14 +8,33 @@ source "$(dirname "$0")/lib.sh"
 n=${ISSUE:-} pr=${PR:?} branch=${BRANCH:?} verdict=${VERDICT:-}
 run_url="$GITHUB_SERVER_URL/$GH_REPO/actions/runs/$GITHUB_RUN_ID"
 
+merge_error=""
 merge() {
   local sha
   sha=$(gh pr view "$pr" --json headRefOid -q .headRefOid)
-  if ! out=$(gh pr merge "$pr" --squash --delete-branch --match-head-commit "$sha" 2>&1); then
+  if ! merge_error=$(gh pr merge "$pr" --squash --delete-branch --match-head-commit "$sha" 2>&1); then
+    echo "$merge_error" >&2
     return 1
   fi
   sleep 5
   gh pr view "$pr" --json mergeCommit -q .mergeCommit.oid
+}
+
+# If main moved on while this task ran (for example your own PR merged), the PR can conflict with main.
+# Merge main into the task branch (CHANGELOG.md lines from both sides are kept, see .gitattributes) and
+# send it round CI and review again. Only once per attempt, and only when git can merge cleanly.
+catch_up_with_main() {
+  [[ $(gh api "repos/$GH_REPO/pulls/$pr" --jq .mergeable_state) =~ ^(dirty|behind)$ ]] || return 1
+  [[ -z $(markers "$n" caught-up) ]] || return 1
+  git_push_setup "pipeline-bot"
+  git fetch -q origin main "$branch"
+  git checkout -q -B catch-up "origin/$branch"
+  if ! git merge -q --no-edit origin/main; then
+    git merge --abort || true
+    merge_error="it conflicts with main in a way git can't resolve on its own"
+    return 1
+  fi
+  git push -q origin "HEAD:$branch"
 }
 
 if [[ $branch == revert/* ]]; then
@@ -41,8 +60,13 @@ case $verdict in
       comment "$n" "🔀 Merged #$pr as ${sha:0:7}. Next: deploy to staging and run the smoke tests."
       set_stage "$n" staging
       dispatch staging.yml main "$n" "sha=$sha" "issue=$n" "mode=task"
+    elif catch_up_with_main; then
+      comment "$n" "🔄 Main moved while #$pr was in progress. Merged main into \`$branch\`; CI and review run again on the result.
+<!-- caught-up:1 -->"
+      set_stage "$n" ci
+      dispatch ci.yml "$branch" "$n" "issue=$n"
     else
-      stall "$n" "the adversary approved #$pr but GitHub refused the merge (a required check is missing or red, or main moved). [Run]($run_url)"
+      stall "$n" "the adversary approved #$pr but GitHub refused the merge: ${merge_error:-unknown reason}. [Run]($run_url)"
     fi
     ;;
   escalate)

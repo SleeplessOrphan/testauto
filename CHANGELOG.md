@@ -14,6 +14,14 @@
 - Setup steps in `docs/setup.md` and decision record `docs/decisions/0001-pipeline-in-github-actions.md`.
 
 ### Changed
+- Per-task cap raised to $1.50.
+- If main moves while a task is running, the pipeline merges main into the task branch and re-runs CI and review instead of stalling.
+- Extra pull_request runs that GitHub opens on agent PRs now skip, so approving one by hand can't block the merge.
+
+### Fixed (pipeline)
+- Run names containing `#` were cut off (YAML comment), which hid the task number from the watchdog.
+
+### Changed (earlier)
 - Per-task spend cap lowered from $3 to $1.
 - The planner only re-runs when `spec/` changes (or when started by hand).
 - `coder.yml` is now started by the pipeline after the adversary's tests exist, instead of directly by the `task` label. The `task` label now queues the issue.

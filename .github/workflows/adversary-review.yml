@@ -1,5 +1,5 @@
 name: adversary-review
-run-name: adversary-review ${{ github.ref_name }} #${{ inputs.issue }}
+run-name: "adversary-review ${{ github.ref_name }} #${{ inputs.issue }}"
 # Stage 4 of a task: the adversary attacks the finished change. Its verdict is the required
 # `adversary-verdict` check. On approval this workflow merges the PR and starts the staging deploy.
 on:
@@ -25,6 +25,8 @@ env:
 
 jobs:
   adversary-verdict:
+    # Agent PRs also fire pull_request runs, held for approval; they are not needed, so they skip.
+    if: github.event_name != 'pull_request' || !(startsWith(github.head_ref, 'task/') || startsWith(github.head_ref, 'revert/'))
     runs-on: ubuntu-latest
     timeout-minutes: 30
     outputs:
@@ -135,5 +137,5 @@ jobs:
       JOB_RESULT: ${{ needs.adversary-verdict.result }}
     steps:
       - uses: actions/checkout@v4
-        with: { ref: main, persist-credentials: false }
+        with: { ref: main, fetch-depth: 0, persist-credentials: false }
       - run: bash scripts/pipeline/after-review.sh

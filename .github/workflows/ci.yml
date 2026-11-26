@@ -2,6 +2,8 @@ name: ci
 run-name: ci ${{ github.ref_name }}
 # The neutral referee. Runs on your own pull requests and on main, and is started by the pipeline on agent
 # branches (task/* and revert/*). Every job name below is a required status check on main.
+# GitHub also fires pull_request runs for agent PRs and holds them for approval. They are not
+# needed (the pipeline starts its own runs), so if someone approves one, every job skips.
 on:
   pull_request:
   push:
@@ -29,6 +31,7 @@ env:
 
 jobs:
   build:
+    if: github.event_name != 'pull_request' || !(startsWith(github.head_ref, 'task/') || startsWith(github.head_ref, 'revert/'))
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -43,6 +46,7 @@ jobs:
         run: npx next build
 
   unit:
+    if: github.event_name != 'pull_request' || !(startsWith(github.head_ref, 'task/') || startsWith(github.head_ref, 'revert/'))
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -64,6 +68,7 @@ jobs:
           retention-days: 30
 
   e2e:
+    if: github.event_name != 'pull_request' || !(startsWith(github.head_ref, 'task/') || startsWith(github.head_ref, 'revert/'))
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -97,6 +102,7 @@ jobs:
           if-no-files-found: ignore
 
   docs-check:
+    if: github.event_name != 'pull_request' || !(startsWith(github.head_ref, 'task/') || startsWith(github.head_ref, 'revert/'))
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -118,6 +124,7 @@ jobs:
         run: bash "$RUNNER_TEMP/kit/scripts/guards/${{ github.job }}.sh" "$BASE" "$BRANCH"
 
   size-check:
+    if: github.event_name != 'pull_request' || !(startsWith(github.head_ref, 'task/') || startsWith(github.head_ref, 'revert/'))
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -139,6 +146,7 @@ jobs:
         run: bash "$RUNNER_TEMP/kit/scripts/guards/${{ github.job }}.sh" "$BASE" "$BRANCH"
 
   protected-files:
+    if: github.event_name != 'pull_request' || !(startsWith(github.head_ref, 'task/') || startsWith(github.head_ref, 'revert/'))
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
