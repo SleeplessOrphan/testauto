@@ -1,0 +1,69 @@
+name: adversary-tests
+run-name: adversary-tests #${{ inputs.issue }}
+# Stage 1 of a task: the adversary writes failing tests from the acceptance criteria, before any code exists.
+on:
+  workflow_dispatch:
+    inputs:
+      issue: { description: Task issue number, required: true }
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  actions: write
+  id-token: write
+
+concurrency:
+  group: task-${{ inputs.issue }}
+  cancel-in-progress: false
+
+jobs:
+  write-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GH_REPO: ${{ github.repository }}
+      ISSUE: ${{ inputs.issue }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "task/${{ inputs.issue }}", fetch-depth: 0, persist-credentials: false }
+      - name: Copy the pipeline kit from main, out of the agent's reach
+        run: |
+          git fetch -q origin main
+          mkdir -p "$RUNNER_TEMP/kit"
+          git archive origin/main scripts models.yaml prompts | tar -x -C "$RUNNER_TEMP/kit"
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - id: prep
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: bash "$RUNNER_TEMP/kit/scripts/pipeline/agent.sh" tests prepare
+      - id: claude
+        if: steps.prep.outputs.skip != 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ github.token }}
+          allowed_bots: "*"
+          prompt: |
+            Your instructions are in .pipeline/instructions.md and the task is in .pipeline/task.md. Follow them exactly.
+            The task number N is ${{ inputs.issue }}.
+          claude_args: >-
+            --model ${{ steps.prep.outputs.model }}
+            --max-turns ${{ steps.prep.outputs.max_turns }}
+            --allowedTools "Read,Write,Edit,Glob,Grep,Bash(npx tsc:*),Bash(npx vitest run:*)"
+      - name: Commit the tests and start the coder
+        if: steps.prep.outputs.skip != 'true' && !cancelled()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MODEL: ${{ steps.prep.outputs.model }}
+        run: bash "$RUNNER_TEMP/kit/scripts/pipeline/agent.sh" tests finish "${{ steps.claude.outputs.execution_file }}"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: adversary-tests-log
+          path: |
+            .pipeline/
+            ${{ steps.claude.outputs.execution_file }}
+          include-hidden-files: true
+          if-no-files-found: ignore

@@ -1,0 +1,49 @@
+name: staging
+run-name: staging ${{ inputs.mode }} #${{ inputs.issue }}
+# Stage 5 of a task: after the merge, wait for Vercel to deploy main, smoke-test it, and revert on failure.
+# One at a time, in merge order.
+on:
+  workflow_dispatch:
+    inputs:
+      sha: { description: Merge commit on main, required: true }
+      issue: { description: Task issue number, required: false, default: "" }
+      mode: { description: "task or revert", required: false, default: task }
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  actions: write
+  deployments: read
+
+concurrency:
+  group: staging
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      SHA: ${{ inputs.sha }}
+      ISSUE: ${{ inputs.issue }}
+      MODE: ${{ inputs.mode }}
+      STAGING_URL: ${{ vars.STAGING_URL }}
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: main, persist-credentials: false }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: bash scripts/pipeline/staging.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-report
+          path: |
+            playwright-report/
+            test-results/
+            junit/
+          if-no-files-found: ignore

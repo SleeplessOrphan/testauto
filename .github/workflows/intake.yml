@@ -1,0 +1,43 @@
+name: intake
+run-name: intake #${{ github.event.issue.number }}
+# Lets you add a task by hand: label any issue `task` and it joins the queue.
+# Closing the pause issue (or removing its `pause` label) resumes the pipeline.
+on:
+  issues:
+    types: [labeled, unlabeled, closed]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  actions: write
+
+jobs:
+  queue:
+    if: github.event.action == 'labeled' && github.event.label.name == 'task'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - run: |
+          gh label create queued --force --color c5def5 >/dev/null 2>&1 || true
+          gh issue edit ${{ github.event.issue.number }} --add-label queued
+          gh workflow run dispatcher.yml --ref main
+
+  resume:
+    if: >-
+      (github.event.action == 'unlabeled' && github.event.label.name == 'pause') ||
+      (github.event.action == 'closed' && contains(github.event.issue.labels.*.name, 'pause'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - run: bash scripts/pipeline/resume.sh

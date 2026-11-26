@@ -1,23 +1,72 @@
 name: coder
+run-name: coder #${{ inputs.issue }} round ${{ inputs.round }}
+# Stage 2 of a task: the coder makes the adversary's tests pass and opens (or updates) the pull request.
 on:
-  issues:
-    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      issue: { description: Task issue number, required: true }
+      round: { description: Round number (1 = first try), required: true, default: "1" }
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  actions: write
+  id-token: write
+
+concurrency:
+  group: task-${{ inputs.issue }}
+  cancel-in-progress: false
+
 jobs:
   code:
-    if: github.event.label.name == 'task'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    permissions:
-      contents: write
-      pull-requests: write
-      issues: write
-      id-token: write
+    timeout-minutes: 45
+    env:
+      GH_REPO: ${{ github.repository }}
+      ISSUE: ${{ inputs.issue }}
+      ROUND: ${{ inputs.round }}
     steps:
       - uses: actions/checkout@v4
-      - uses: anthropics/claude-code-action@v1
+        with: { ref: "task/${{ inputs.issue }}", fetch-depth: 0, persist-credentials: false }
+      - name: Copy the pipeline kit from main, out of the agent's reach
+        run: |
+          git fetch -q origin main
+          mkdir -p "$RUNNER_TEMP/kit"
+          git archive origin/main scripts models.yaml prompts | tar -x -C "$RUNNER_TEMP/kit"
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - id: prep
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: bash "$RUNNER_TEMP/kit/scripts/pipeline/agent.sh" code prepare
+      - id: claude
+        if: steps.prep.outputs.skip != 'true'
+        uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ github.token }}
+          allowed_bots: "*"
           prompt: |
-            Implement issue #${{ github.event.issue.number }}. Keep the change under 300 lines,
-            update docs/ and CHANGELOG.md, and open a pull request that links the issue.
-          claude_args: --model claude-sonnet-5-5 --max-turns 30
+            Your instructions are in .pipeline/instructions.md and the task is in .pipeline/task.md.
+            If .pipeline/feedback.md exists, it explains why the last round was rejected. Follow the instructions exactly.
+          claude_args: >-
+            --model ${{ steps.prep.outputs.model }}
+            --max-turns ${{ steps.prep.outputs.max_turns }}
+            --allowedTools "Read,Write,Edit,Glob,Grep,Bash(npx tsc:*),Bash(npx vitest run:*),Bash(npx next build:*),Bash(npx playwright test:*),Bash(npm install:*),Bash(npm ci:*)"
+      - name: Commit, open the PR and start CI
+        if: steps.prep.outputs.skip != 'true' && !cancelled()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MODEL: ${{ steps.prep.outputs.model }}
+        run: bash "$RUNNER_TEMP/kit/scripts/pipeline/agent.sh" code finish "${{ steps.claude.outputs.execution_file }}"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coder-log-round-${{ inputs.round }}
+          path: |
+            .pipeline/
+            ${{ steps.claude.outputs.execution_file }}
+          include-hidden-files: true
+          if-no-files-found: ignore
