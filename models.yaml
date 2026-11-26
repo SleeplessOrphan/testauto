@@ -1,0 +1,28 @@
+# Which model each agent role uses, plus the limits the pipeline enforces.
+# Changing a model is a one-line edit here. Agents cannot change this file:
+# the protected-files check refuses any task PR that touches it.
+#
+# Iteration one runs every role through anthropics/claude-code-action, so only
+# Anthropic models work today. The `provider` field is there so iteration two
+# can route other providers through a gateway without changing this layout.
+
+roles:
+  planner:          { provider: anthropic, model: claude-opus-5-5,   max_turns: 30 }
+  adversary_tests:  { provider: anthropic, model: claude-sonnet-5-5, max_turns: 40 }
+  coder:            { provider: anthropic, model: claude-sonnet-5-5, max_turns: 40 }
+  coder_escalation: { provider: anthropic, model: claude-opus-5-5,   max_turns: 40 }
+  adversary_review: { provider: anthropic, model: claude-sonnet-5-5, max_turns: 40 }
+
+limits:
+  per_task_usd: 3          # a task that has spent this much is stalled and flagged
+  max_rounds: 3            # coder rounds on the normal model; one more round on the escalation model, then stall
+  max_changed_lines: 300   # size-check, not counting tests/ and package-lock.json
+  max_changed_files: 10
+
+# The watchdog stalls a task that sits in one stage longer than this with no run going.
+stage_minutes:
+  tests: 40
+  code: 60
+  ci: 40
+  review: 45
+  staging: 30

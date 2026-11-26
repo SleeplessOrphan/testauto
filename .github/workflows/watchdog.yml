@@ -1,0 +1,31 @@
+name: watchdog
+run-name: watchdog
+# Every hour: flags tasks that stopped moving and restarts the queue if it went idle.
+# Hourly rather than every 15 minutes because each run bills at least one Actions minute: every
+# 15 minutes would use about 2,900 minutes a month on its own, more than a private repo's 2,000 free minutes.
+on:
+  schedule:
+    - cron: "7 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+  actions: write
+
+concurrency:
+  group: watchdog
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: main, persist-credentials: false }
+      - run: bash scripts/pipeline/watchdog.sh

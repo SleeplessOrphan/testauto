@@ -1,0 +1,61 @@
+name: planner
+run-name: planner
+# Turns spec/app.md into queued task issues when the spec changes on main.
+on:
+  push:
+    branches: [main]
+    paths: ["spec/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  actions: write
+  id-token: write
+
+concurrency:
+  group: planner
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Copy the pipeline kit out of the workspace
+        run: mkdir -p "$RUNNER_TEMP/kit" && cp -r scripts prompts models.yaml "$RUNNER_TEMP/kit/"
+      - id: prep
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash "$RUNNER_TEMP/kit/scripts/pipeline/plan.sh" prepare
+      - id: claude
+        if: steps.prep.outputs.skip != 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ github.token }}
+          allowed_bots: "*"
+          prompt: |
+            Your instructions are in .pipeline/instructions.md. Follow them exactly.
+          claude_args: >-
+            --model ${{ steps.prep.outputs.model }}
+            --max-turns ${{ steps.prep.outputs.max_turns }}
+            --allowedTools "Read,Glob,Grep,Write"
+      - name: Create the task issues
+        if: steps.prep.outputs.skip != 'true' && !cancelled()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash "$RUNNER_TEMP/kit/scripts/pipeline/plan.sh" publish "${{ steps.claude.outputs.execution_file }}"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: planner-log
+          path: |
+            .pipeline/
+            ${{ steps.claude.outputs.execution_file }}
+          if-no-files-found: ignore
