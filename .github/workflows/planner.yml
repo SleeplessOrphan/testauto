@@ -1,10 +1,12 @@
 name: planner
 run-name: planner
 # Turns spec/app.md into queued task issues when the spec changes on main.
+# claude-code-action can't run on push events, so a push only starts a workflow_dispatch run of this
+# same workflow, and the planning happens in that run.
 on:
   push:
     branches: [main]
-    paths: ["spec/**"]
+    paths: ["spec/**", ".github/workflows/planner.yml"]
   workflow_dispatch:
 
 permissions:
@@ -18,7 +20,18 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  start:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - run: gh workflow run planner.yml --ref main
+
   plan:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
