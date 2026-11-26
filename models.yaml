@@ -14,7 +14,7 @@ roles:
   adversary_review: { provider: anthropic, model: claude-sonnet-5-5, max_turns: 40 }
 
 limits:
-  per_task_usd: 3          # a task that has spent this much is stalled and flagged
+  per_task_usd: 1          # a task that has spent this much is stalled and flagged
   max_rounds: 3            # coder rounds on the normal model; one more round on the escalation model, then stall
   max_changed_lines: 300   # size-check, not counting tests/ and package-lock.json
   max_changed_files: 10

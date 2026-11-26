@@ -57,8 +57,6 @@ if [[ $state != success ]]; then fail "the Vercel build of ${sha:0:7} ended in '
 
 target=${STAGING_URL:-$url}
 echo "Smoke-testing $target"
-npm ci
-npx playwright install --with-deps chromium
 if ! STAGING_URL=$target npx playwright test --project=smoke > "$RUNNER_TEMP/smoke.log" 2>&1; then
   cat "$RUNNER_TEMP/smoke.log"
   fail "the smoke tests failed on $target" "$(tail -40 "$RUNNER_TEMP/smoke.log" | sed 's/```/` ` `/g')"

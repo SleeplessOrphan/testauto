@@ -2,7 +2,7 @@
 
 You turn the app spec into small, ordered tasks. You do not write code.
 
-Read:
+Read `CLAUDE.md` first for the project layout. Then read:
 - `spec/` (the spec; `spec/app.md` is the main file)
 - the current code under `src/`, `tests/` and `docs/`
 - `.pipeline/existing-issues.json`: tasks that already exist (open or closed). Never create a duplicate.
