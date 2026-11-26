@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Maths question generator with percentages and mixed-operations topics (`src/lib/maths/`). See `docs/maths-questions.md`.
 - `CLAUDE.md` project map that every agent reads first, kept current by the coder.
 - The planner saves each plan on a "Planner output" issue and reuses it if a run fails, instead of paying to plan again.
 - npm and Playwright browser caching in every workflow that runs the tests.
