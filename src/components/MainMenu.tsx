@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { clearPreferences, loadPreferences, saveSetup, saveSound } from "@/lib/settings/storage";
 import type { GameState } from "@/lib/game/types";
 import type { GameSettings } from "@/lib/settings/types";
 import { GameScreen } from "./GameScreen";
@@ -25,8 +26,12 @@ export function MainMenu() {
   const [gameKey, setGameKey] = useState(0);
   // Setup is pre-filled only when reached from the results screen.
   const [reuse, setReuse] = useState(false);
-  // Shared app state for now; saving it locally is a later task.
   const [soundEnabled, setSoundEnabled] = useState(true);
+  // Read after mount so server and client render the same markup.
+  useEffect(() => {
+    const saved = loadPreferences().soundEnabled;
+    if (saved !== undefined) setSoundEnabled(saved);
+  }, []);
   const back = () => go("menu");
   const onFinish = useCallback((s: GameState) => {
     setFinal(s);
@@ -37,8 +42,9 @@ export function MainMenu() {
     return (
       <GameSetup
         onBack={back}
-        initial={reuse && settings ? settings : undefined}
+        initial={reuse && settings ? settings : loadPreferences().setup}
         onStart={(s) => {
+          saveSetup(s);
           setSettings(s);
           setGameKey((k) => k + 1);
           go("game");
@@ -76,7 +82,24 @@ export function MainMenu() {
     );
   }
   if (screen === "instructions") return <Instructions onBack={back} />;
-  if (screen === "settings") return <SettingsScreen onBack={back} soundEnabled={soundEnabled} onSoundChange={setSoundEnabled} />;
+  if (screen === "settings") {
+    return (
+      <SettingsScreen
+        onBack={back}
+        soundEnabled={soundEnabled}
+        onSoundChange={(on) => {
+          setSoundEnabled(on);
+          saveSound(on);
+        }}
+        onReset={() => {
+          clearPreferences();
+          setSoundEnabled(true);
+          setSettings(null);
+          setReuse(false);
+        }}
+      />
+    );
+  }
 
   return (
     <main>
