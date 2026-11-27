@@ -37,6 +37,7 @@ Workflows start each other with `workflow_dispatch`. That is deliberate: actions
 | Fully documented | `docs-check` fails if `src/` changed without `docs/` or `CHANGELOG.md`. The adversary also reviews the docs. |
 | Tests are logged | Unit and Playwright runs upload JUnit XML, the Playwright report, traces and screenshots as artifacts (kept 30 days). A run with no log fails. Every agent run's cost and result is a comment on the task issue. |
 | Staging in order | One task runs at a time. Staging runs one at a time (`concurrency: staging`), in merge order, and the next task starts only after staging passes or the task stalls. |
+| Test disputes | If a coder round changes nothing and the coder's notes say a test is wrong, the adversary gets one chance to check that test against the spec. If it corrects the test, the coder carries on; if it keeps the test, the task stalls for you to decide. |
 | Bounded retries and spend | Up to 3 coder rounds on Sonnet, then one round on Opus, then stall. The same failures twice in a row skip straight to the Opus round. A task stalls once it has spent $1.50 (see `models.yaml`). Claude's turn limits cap each run; the Anthropic Console spend limit caps the month. |
 | Timeouts flag stops | Every job has `timeout-minutes`. The watchdog (hourly) stalls a task whose stage workflow failed, or that sat in a stage longer than `stage_minutes` with nothing running, and posts the last log lines. |
 

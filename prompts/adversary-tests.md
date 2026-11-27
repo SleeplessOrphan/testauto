@@ -27,3 +27,10 @@ Write tests only under `tests/`. Any change outside `tests/` is thrown away.
 
 Finally write `.pipeline/questions.md` listing any place the acceptance criteria were ambiguous and
 the reading your tests assume. Write "None." if there were none.
+
+## If `.pipeline/dispute.md` exists
+
+The tests already exist and the coder says one of them is wrong (its notes and the CI failure are in
+`.pipeline/dispute.md`). Re-read the spec, the task and the disputed test. If the test is wrong or
+contradicts your other tests, fix only that test. If it is right, change nothing. Either way, explain your
+decision in `.pipeline/questions.md`.
