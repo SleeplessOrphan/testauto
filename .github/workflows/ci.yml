@@ -1,5 +1,5 @@
 name: ci
-run-name: ci ${{ github.ref_name }}
+run-name: ci ${{ inputs.branch || github.ref_name }}
 # The neutral referee. Runs on every push to main and to your own branches (so your pull requests get
 # their checks), and is started by the pipeline on agent branches (task/* and revert/*). Every job name
 # below is a required status check on main.
@@ -14,6 +14,10 @@ on:
         description: Task issue number (set by the pipeline)
         required: false
         default: ""
+      branch:
+        description: Agent branch to test (set by the pipeline). The workflow itself always runs from main.
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -22,20 +26,38 @@ permissions:
   actions: write
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ inputs.branch || github.ref }}
   cancel-in-progress: true
 
 env:
   GH_REPO: ${{ github.repository }}
-  BRANCH: ${{ github.ref_name }}
+  BRANCH: ${{ inputs.branch || github.ref_name }}
 
 jobs:
+  # The commit under test. The pipeline starts this workflow on main (so it always uses main's settings and
+  # permissions) and names the agent branch in `branch`; every job tests that branch's commit.
+  head:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      sha: ${{ steps.sha.outputs.sha }}
+    steps:
+      - id: sha
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_BRANCH: ${{ inputs.branch }}
+        run: |
+          if [[ -n $INPUT_BRANCH ]]; then sha=$(gh api "repos/$GH_REPO/commits/$INPUT_BRANCH" --jq .sha); else sha=$GITHUB_SHA; fi
+          echo "Testing $BRANCH at $sha"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: head
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-        with: { persist-credentials: false }
+        with: { ref: "${{ needs.head.outputs.sha }}", persist-credentials: false }
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci
@@ -45,11 +67,12 @@ jobs:
         run: npx next build
 
   unit:
+    needs: head
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-        with: { persist-credentials: false }
+        with: { ref: "${{ needs.head.outputs.sha }}", persist-credentials: false }
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci
@@ -66,11 +89,12 @@ jobs:
           retention-days: 30
 
   e2e:
+    needs: head
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-        with: { persist-credentials: false }
+        with: { ref: "${{ needs.head.outputs.sha }}", persist-credentials: false }
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci
@@ -99,11 +123,12 @@ jobs:
           if-no-files-found: ignore
 
   docs-check:
+    needs: head
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-        with: { fetch-depth: 0, persist-credentials: false }
+        with: { ref: "${{ needs.head.outputs.sha }}", fetch-depth: 0, persist-credentials: false }
       - name: Use the guard scripts from main (agents can't change them on their branch)
         run: |
           git fetch -q origin main
@@ -120,11 +145,12 @@ jobs:
         run: bash "$RUNNER_TEMP/kit/scripts/guards/${{ github.job }}.sh" "$BASE" "$BRANCH"
 
   size-check:
+    needs: head
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-        with: { fetch-depth: 0, persist-credentials: false }
+        with: { ref: "${{ needs.head.outputs.sha }}", fetch-depth: 0, persist-credentials: false }
       - name: Use the guard scripts from main (agents can't change them on their branch)
         run: |
           git fetch -q origin main
@@ -141,11 +167,12 @@ jobs:
         run: bash "$RUNNER_TEMP/kit/scripts/guards/${{ github.job }}.sh" "$BASE" "$BRANCH"
 
   protected-files:
+    needs: head
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-        with: { fetch-depth: 0, persist-credentials: false }
+        with: { ref: "${{ needs.head.outputs.sha }}", fetch-depth: 0, persist-credentials: false }
       - name: Use the guard scripts from main (agents can't change them on their branch)
         run: |
           git fetch -q origin main
@@ -163,7 +190,7 @@ jobs:
 
   # Not a required check: hands the result to the next stage of the pipeline.
   pipeline-next:
-    needs: [build, unit, e2e, docs-check, size-check, protected-files]
+    needs: [head, build, unit, e2e, docs-check, size-check, protected-files]
     # Only this shell job may post commit statuses (the check results).
     permissions:
       contents: read
@@ -173,12 +200,13 @@ jobs:
       statuses: write
     if: >-
       always() && github.event_name == 'workflow_dispatch' &&
-      (startsWith(github.ref_name, 'task/') || startsWith(github.ref_name, 'revert/'))
+      (startsWith(inputs.branch, 'task/') || startsWith(inputs.branch, 'revert/'))
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
       GH_TOKEN: ${{ github.token }}
       ISSUE: ${{ inputs.issue }}
+      SHA: ${{ needs.head.outputs.sha }}
       RESULTS: ${{ toJSON(needs) }}
       LOGS: ${{ github.workspace }}/logs
     steps:

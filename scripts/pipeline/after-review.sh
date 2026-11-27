@@ -41,7 +41,7 @@ catch_up_with_main() {
 # Report the verdict as a commit status on the commit the adversary reviewed (see report_status in lib.sh).
 if [[ -n $verdict ]]; then
   [[ $verdict == approve ]] && st=success || st=failure
-  report_status "$GITHUB_SHA" adversary-verdict "$st" "$verdict"
+  report_status "${SHA:-$GITHUB_SHA}" adversary-verdict "$st" "$verdict"
   sleep 3
 fi
 
