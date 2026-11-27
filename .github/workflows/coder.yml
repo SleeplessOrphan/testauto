@@ -54,6 +54,7 @@ jobs:
           claude_args: >-
             --model ${{ steps.prep.outputs.model }}
             --max-turns ${{ steps.prep.outputs.max_turns }}
+            ${{ steps.prep.outputs.effort_arg }}
             --allowedTools "Read,Write,Edit,Glob,Grep,Bash(npx tsc:*),Bash(npx vitest run:*),Bash(npx next build:*),Bash(npx playwright test:*),Bash(npm install:*),Bash(npm ci:*)"
       - name: Commit, open the PR and start CI
         if: steps.prep.outputs.skip != 'true' && !cancelled()

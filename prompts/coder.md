@@ -20,7 +20,9 @@ Do:
 2. Run the checks before you finish:
    - `npx tsc --noEmit`
    - `npx vitest run`
-   - `npx next build` then `npx playwright test --project=e2e`
+   - `npx next build` then `npx playwright test --project=e2e tests/e2e/issue-<N>-*` (N is the task number in
+     `.pipeline/task.md`), plus any e2e file named in `.pipeline/feedback.md`. If the task has no e2e files of
+     its own, skip Playwright. CI runs the whole e2e suite afterwards, so don't run all of it yourself.
    Fix failures until they pass, within your turn limit.
 3. Update the docs in the same change. If you added a folder, key module or convention, update `CLAUDE.md`. Also: `docs/` (user guide or architecture notes for what you built; add
    `docs/decisions/NNNN-title.md` for any design choice) and add a line under "Unreleased" in `CHANGELOG.md`.

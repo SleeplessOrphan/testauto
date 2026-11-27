@@ -101,6 +101,7 @@ jobs:
           claude_args: >-
             --model ${{ steps.prep.outputs.model }}
             --max-turns ${{ steps.prep.outputs.max_turns }}
+            ${{ steps.prep.outputs.effort_arg }}
             --allowedTools "Read,Write,Edit,Glob,Grep,Bash(npx tsc:*),Bash(npx vitest run:*),Bash(npx playwright test:*)"
       - id: finish
         name: Record the verdict

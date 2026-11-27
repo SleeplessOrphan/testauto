@@ -51,6 +51,7 @@ jobs:
           claude_args: >-
             --model ${{ steps.prep.outputs.model }}
             --max-turns ${{ steps.prep.outputs.max_turns }}
+            ${{ steps.prep.outputs.effort_arg }}
             --allowedTools "Read,Write,Edit,Glob,Grep,Bash(npx tsc:*),Bash(npx vitest run:*)"
       - name: Commit the tests and start the coder
         if: steps.prep.outputs.skip != 'true' && !cancelled()

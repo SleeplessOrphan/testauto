@@ -83,6 +83,9 @@ if [[ $phase == prepare ]]; then
   out "role_key=$key"
   out "model=$(cfg ".roles.$key.model")"
   out "max_turns=$(cfg ".roles.$key.max_turns")"
+  # Passed straight into claude_args, so it is empty when the role sets no effort.
+  effort=$(cfg ".roles.$key.effort // \"\"")
+  out "effort_arg=${effort:+--effort $effort}"
   exit 0
 fi
 
