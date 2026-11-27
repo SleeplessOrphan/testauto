@@ -26,6 +26,22 @@ export function drawGame(ctx: CanvasRenderingContext2D, state: GameState): void 
   }
   ctx.stroke();
 
+  for (const o of state.obstacles ?? []) {
+    const x = o.x * CELL_PX;
+    const y = o.y * CELL_PX;
+    ctx.fillStyle = '#6d4c41';
+    ctx.fillRect(x + 1, y + 1, CELL_PX - 2, CELL_PX - 2);
+    // A white cross, so obstacles differ from snakes and tiles by shape and not only by colour.
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(x + 6, y + 6);
+    ctx.lineTo(x + CELL_PX - 6, y + CELL_PX - 6);
+    ctx.moveTo(x + CELL_PX - 6, y + 6);
+    ctx.lineTo(x + 6, y + CELL_PX - 6);
+    ctx.stroke();
+  }
+
   for (const tile of state.tiles ?? []) {
     const x = tile.x * CELL_PX;
     const y = tile.y * CELL_PX;

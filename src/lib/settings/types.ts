@@ -6,8 +6,12 @@ export interface PlayerSettings {
   topics: Topic[];
 }
 
+import type { GameplayDifficulty } from "./gameplay";
+
 export interface GameSettings {
   players: [PlayerSettings, PlayerSettings];
+  /** Shared by both players; separate from each player's maths difficulty. */
+  gameplay: GameplayDifficulty;
 }
 
 /** Raw form values for one player, before defaults are applied. */

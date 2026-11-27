@@ -3,7 +3,7 @@ import { loseLife } from './lives';
 import { step } from './movement';
 import type { GameState } from './types';
 
-/** 5 cells per second until gameplay difficulty is built. */
+/** Default tick length; the game screen passes the one for the chosen gameplay difficulty. */
 export const TICK_MS = 200;
 
 /** Longest frame gap we account for, so a background tab does not fast-forward the snakes on return. */
@@ -31,7 +31,8 @@ export function advance(state: GameState): GameState {
     const head = moved.snakes[i].segments[0];
     return (
       head.x < 0 || head.y < 0 || head.x >= GRID_COLUMNS || head.y >= GRID_ROWS ||
-      occupied.has(key(i))
+      occupied.has(key(i)) ||
+      (state.obstacles ?? []).some((o) => o.x === head.x && o.y === head.y)
     );
   });
   // Two heads entering the same empty cell stop both snakes.
