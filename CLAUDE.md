@@ -46,4 +46,4 @@ correct answers to maths questions. Built autonomously, one small task at a time
 - Put game and maths logic in `src/lib/` as pure functions; components only render and handle input.
 - Tests find elements by role, label and visible text, so use semantic HTML and accessible labels.
 - Every change updates `docs/` and `CHANGELOG.md` (CI fails otherwise).
-- Keep each change under 300 lines and 10 files, not counting tests.
+- Keep each change under 300 lines and 10 files, not counting tests. `CHANGELOG.md`, `CLAUDE.md` and `docs/` don't count toward the 10 files.
