@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Preferences (setup and sound) saved in localStorage and restored on load; Reset Settings button; app works when storage is unavailable. (#27)
 - Sound effects setting (default on) with four Web Audio sounds (correct, incorrect, collision, streak); test hooks `data-sound-log` and `data-last-sound`. (#26)
 - Arcade theme (CSS variables, system fonts), snake body patterns, per-player feedback markers (`data-feedback`), collision outline and reduced-motion support (`data-reduced-motion`). (#25)
 - Pause menu (Escape, tab blur or hidden tab) with Resume (3-second countdown), Restart and Exit with confirmation, and End Game in Practice. (#24)

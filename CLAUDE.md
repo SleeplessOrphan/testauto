@@ -27,7 +27,7 @@ correct answers to maths questions. Built autonomously, one small task at a time
 | `src/lib/game/` | Game engine: grid constants, types, initial state, movement (`step`, `queueDirection`), scoring (`scoring.ts`), results statistics (`results.ts`), lives and respawning (`lives.ts`), mode end rules (`modes.ts`), collision (`resolveCollisions`), obstacle generation (`obstacles.ts`), key mapping, tick loop (`loop.ts`), `?seed=` parsing. |
 | `src/lib/render/` | Canvas drawing (no game logic). `src/hooks/` holds React hooks (keyboard, reduced motion). |
 | `src/lib/audio/` | Web Audio sound synthesis (`sounds.ts`); see `docs/settings.md`. |
-| `src/lib/settings/` | `GameSettings` types, gameplay difficulty levels (`gameplay.ts`), setup defaults and validation (`buildSettings`). |
+| `src/lib/settings/` | `GameSettings` types, gameplay difficulty levels (`gameplay.ts`), setup defaults and validation (`buildSettings`), saved preferences in localStorage (`storage.ts`). |
 | `src/lib/maths/` | Question generation: `generate.ts` entry point, `topics/` per-topic generators, `distractors.ts`, `random.ts`. |
 | `tests/unit/` | Vitest tests, `*.test.ts`. |
 | `tests/e2e/` | Playwright tests run against a local production build at `/`. |
