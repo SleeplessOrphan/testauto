@@ -14,16 +14,18 @@ const DIRECTIONS = Object.keys(DELTAS) as Direction[];
 /** Free cells the respawned head must have in front of it, so it does not crash straight away. */
 const CLEAR_AHEAD = 2;
 
-const inGrid = (p: Position) => p.x >= 0 && p.y >= 0 && p.x < GRID_COLUMNS && p.y < GRID_ROWS;
+type Placement = { segments: Position[]; direction: Direction; runway: number };
+
+const inGrid =(p: Position) => p.x >= 0 && p.y >= 0 && p.x < GRID_COLUMNS && p.y < GRID_ROWS;
 const key = (p: Position) => p.x + ',' + p.y;
 
 /** All three-segment placements that fit; `margin` keeps them off cells next to anything in the way. */
-function placements(blockers: Position[], margin: boolean): { segments: Position[]; direction: Direction }[] {
+function placements(blockers: Position[], margin: boolean): Placement[] {
   const used = new Set(blockers.map(key));
   const near = (p: Position) =>
     used.has(key(p)) ||
     (margin && DIRECTIONS.some((d) => used.has(key({ x: p.x + DELTAS[d].x, y: p.y + DELTAS[d].y }))));
-  const found: { segments: Position[]; direction: Direction }[] = [];
+  const found: Placement[] = [];
   for (let x = 0; x < GRID_COLUMNS; x++) {
     for (let y = 0; y < GRID_ROWS; y++) {
       for (const direction of DIRECTIONS) {
@@ -31,7 +33,10 @@ function placements(blockers: Position[], margin: boolean): { segments: Position
         const segments = Array.from({ length: MIN_SNAKE_LENGTH }, (_, i) => ({ x: x - d.x * i, y: y - d.y * i }));
         const ahead = Array.from({ length: CLEAR_AHEAD }, (_, i) => ({ x: x + d.x * (i + 1), y: y + d.y * (i + 1) }));
         if (segments.every((p) => inGrid(p) && !near(p)) && ahead.every((p) => inGrid(p) && !used.has(key(p)))) {
-          found.push({ segments, direction });
+          let runway = CLEAR_AHEAD;
+          const cell = (n: number) => ({ x: x + d.x * n, y: y + d.y * n });
+          while (inGrid(cell(runway + 1)) && !used.has(key(cell(runway + 1)))) runway++;
+          found.push({ segments, direction, runway });
         }
       }
     }
@@ -77,6 +82,9 @@ export function loseLife(state: GameState, player: PlayerId, rng: () => number =
   if (options.length === 0) options = placements(blockers, false);
   if (options.length === 0) return eliminate();
 
+  // Prefer the longest clear run ahead so a respawned snake is not back at a wall within a few ticks.
+  const best = Math.max(...options.map((o) => o.runway));
+  options = options.filter((o) => o.runway === best);
   const pick = options[Math.min(options.length - 1, Math.floor(rng() * options.length))];
   const respawned: Snake = {
     player,

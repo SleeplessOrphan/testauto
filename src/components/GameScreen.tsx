@@ -154,7 +154,13 @@ export function GameScreen({ settings, onBack }: { settings: GameSettings; onBac
   // An eliminated player's snake is gone, so look snakes up by player.
   const s1 = state.snakes.find((s) => s.player === 1);
   const s2 = state.snakes.find((s) => s.player === 2);
-  const seg = (s?: { segments: { x: number; y: number }[] }) => (s ? s.segments.map(pt).join(";") : "");
+  // The head and length hooks report where an eliminated snake was last seen, so tools can tell it stopped there.
+  const lastSeen = useRef<Partial<Record<PlayerId, NonNullable<typeof s1>>>>({});
+  if (s1) lastSeen.current[1] = s1;
+  if (s2) lastSeen.current[2] = s2;
+  const h1 = s1 ?? lastSeen.current[1];
+  const h2 = s2 ?? lastSeen.current[2];
+  const seg = (s?:{ segments: { x: number; y: number }[] }) => (s ? s.segments.map(pt).join(";") : "");
   return (
     <main className="game-screen">
       <div
@@ -170,10 +176,10 @@ export function GameScreen({ settings, onBack }: { settings: GameSettings; onBac
         data-p2-correct={state.stats?.[2].correct ?? 0}
         data-p1-incorrect={state.stats?.[1].incorrect ?? 0}
         data-p2-incorrect={state.stats?.[2].incorrect ?? 0}
-        data-p1-head={s1 ? pt(s1.segments[0]) : ""}
-        data-p2-head={s2 ? pt(s2.segments[0]) : ""}
-        data-p1-length={s1?.segments.length ?? 0}
-        data-p2-length={s2?.segments.length ?? 0}
+        data-p1-head={h1 ? pt(h1.segments[0]) : ""}
+        data-p2-head={h2 ? pt(h2.segments[0]) : ""}
+        data-p1-length={h1?.segments.length ?? 0}
+        data-p2-length={h2?.segments.length ?? 0}
         data-p1-direction={s1?.direction}
         data-p2-direction={s2?.direction}
         data-p1-segments={seg(s1)}
