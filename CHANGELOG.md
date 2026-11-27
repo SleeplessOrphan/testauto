@@ -2,7 +2,11 @@
 
 ## Unreleased
 
+### Fixed
+- Snakes whose heads enter the same cell now both stop, and a stopped snake's tail blocks the other snake. (#14)
+
 ### Added
+- Canvas game screen with countdown, fixed-rate loop and keyboard controls. See `docs/game-screen.md`. (#14)
 - Simultaneous collision detection (`src/lib/game/collision.ts`); `step()` reports collided players. See `docs/game-engine.md`. A head proposed onto the snake's own neck (a reversal) is not a self-collision. (#11)
 - Game setup screen with names, per-player difficulty and topics, validation and a placeholder game screen. See `docs/game-setup.md`. (#13)
 - Main menu with Play, Instructions and Settings screens replacing the starter page. (#12)

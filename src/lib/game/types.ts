@@ -15,6 +15,8 @@ export interface Snake {
   direction: Direction;
   /** Direction that will be travelled in the next cycle. */
   pendingDirection: Direction;
+  /** Set once the snake has collided; it no longer moves. */
+  stopped?: boolean;
   /** True when the tail stays put this cycle, so its cell is not vacated. */
   growing?: boolean;
 }
