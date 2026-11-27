@@ -15,7 +15,7 @@ Each task is a GitHub issue. Its labels show where it is: `queued`, then `in-pro
 | Stage | Workflow | What happens | Next |
 | --- | --- | --- | --- |
 | plan | `planner.yml` | When `spec/` changes on main and the spec says `status: ready`, the planner (Opus) writes one issue per small task, labelled `queued`. | dispatcher |
-| pick | `dispatcher.yml` | If nothing is running, takes the oldest `queued` task, creates branch `task/<n>` from main. One task at a time, in order. | tests |
+| pick | `dispatcher.yml` | If nothing is running and no task is stalled, takes the oldest `queued` task, creates branch `task/<n>` from main. One task at a time, in order. | tests |
 | `stage:tests` | `adversary-tests.yml` | The adversary (Sonnet) writes failing tests from the acceptance criteria, before any code. The pipeline records a fingerprint ("lock") of `tests/`. | code |
 | `stage:code` | `coder.yml` | The coder (Sonnet) makes the tests pass, updates `docs/` and `CHANGELOG.md`, and the pipeline opens or updates the pull request. | ci |
 | `stage:ci` | `ci.yml` | build, unit, e2e, docs-check, size-check, protected-files. Red sends feedback to the coder for another round. | review |
@@ -29,20 +29,21 @@ Workflows start each other with `workflow_dispatch`. That is deliberate: actions
 
 | Requirement | How it is enforced |
 | --- | --- |
-| Tests must be sound | After the adversary writes the tests, the pipeline type-checks them. Errors other than missing code the task will add stop the task, so the coder is never pushed to weaken a check to get past them. The review treats any weakened check as a blocker. |
+| Tests must be sound | After the adversary writes the tests, the pipeline type-checks them. Errors other than missing code the task will add (including implicit `any` that comes from that missing code) stop the task, so the coder is never pushed to weaken a check to get past them. The review treats any weakened check as a blocker. |
 | Agents can't mark their own work as passing | Agents only edit files. Shell steps commit, open PRs and merge. The merge only happens after the `adversary-verdict` job passes, and the ruleset on main makes GitHub refuse it unless every required check is green. |
-| The coder can't change the tests | Changes the coder makes under `tests/` are thrown away before committing, and `protected-files` fails if `tests/` differs from the adversary's last lock. |
+| The coder can't change the tests | Changes the coder makes under `tests/` are thrown away before committing, and `protected-files` fails if `tests/` differs from the adversary's last lock. Tests that arrive unchanged from main, when main is merged into the branch, are allowed. |
 | Agents can't change the rules | Changes to `.github/`, `scripts/`, `prompts/`, `spec/`, `models.yaml`, the test configs and the configs that decide what is type-checked and built (`tsconfig*.json`, `next.config.*`, `vercel.json`) are thrown away, and `protected-files` fails if any slip through. The scripts each workflow runs are copied from main before the agent starts. |
-| Small changes | `size-check` fails task PRs over 300 changed lines or 10 files (tests and the lockfile don't count). That stalls the task so it can be split. |
+| Small changes | `size-check` fails task PRs over 300 changed lines or 10 files (tests and the lockfile don't count; `CHANGELOG.md`, `CLAUDE.md` and `docs/` count toward lines but not files). That stalls the task so it can be split. |
 | Fully documented | `docs-check` fails if `src/` changed without `docs/` or `CHANGELOG.md`. The adversary also reviews the docs. |
 | Tests are logged | Unit and Playwright runs upload JUnit XML, the Playwright report, traces and screenshots as artifacts (kept 30 days). A run with no log fails. Every agent run's cost and result is a comment on the task issue. |
-| Staging in order | One task runs at a time. Staging runs one at a time (`concurrency: staging`), in merge order, and the next task starts only after staging passes or the task stalls. |
+| Staging in order | One task runs at a time. Staging runs one at a time (`concurrency: staging`), in merge order, and the next task starts only after staging passes. If a task stalls, the queue waits for it. |
 | Test disputes | If a coder round changes nothing and the coder's notes say a test is wrong, the adversary gets one chance to check that test against the spec. If it corrects the test, the coder carries on; if it keeps the test, the task stalls for you to decide. |
 | Bounded retries and spend | Up to 3 coder rounds on Sonnet, then one round on Opus, then stall. The same failures twice in a row skip straight to the Opus round. A task stalls once it has spent $1.50 (see `models.yaml`). Claude's turn limits cap each run; the Anthropic Console spend limit caps the month. |
 | Timeouts flag stops | Every job has `timeout-minutes`. The watchdog (hourly) stalls a task whose stage workflow failed, or that sat in a stage longer than `stage_minutes` with nothing running, and posts the last log lines. |
 
 A stalled task gets the `stalled` label, a comment with the reason, and a mention of you on the
-**System alerts** issue, which emails you. Other queued tasks carry on.
+**System alerts** issue, which emails you. The queue then waits: no other task starts until the stalled
+one is retried (remove `stalled`, add `queued`) or closed, so later tasks never build on unfinished work.
 
 ## Keeping costs down
 

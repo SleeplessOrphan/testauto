@@ -17,8 +17,14 @@ export interface Snake {
   pendingDirection: Direction;
   /** Set once the snake has collided; it no longer moves. */
   stopped?: boolean;
+  /** True when the tail stays put this cycle, so its cell is not vacated. */
+  growing?: boolean;
 }
 
 export interface GameState {
   snakes: Snake[];
+  /** Blocked cells; none are placed yet. */
+  obstacles?: Position[];
+  /** Players that collided in the last step. */
+  collisions?: PlayerId[];
 }
