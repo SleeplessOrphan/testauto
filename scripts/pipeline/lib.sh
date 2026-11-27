@@ -86,6 +86,13 @@ spend_since_resume() {
 
 over_budget() { awk -v c="$(spend_since_resume "$1")" -v cap="$(cfg .limits.per_task_usd)" 'BEGIN {exit !(c >= cap)}'; }
 
+# AI spend recorded this calendar month (UTC), from the cost markers on every issue and PR.
+month_spend() {
+  gh api "repos/$GH_REPO/issues/comments?since=$(date -u +%Y-%m-01T00:00:00Z)&per_page=100" --paginate \
+    --jq ".[] | select(.user.login==\"$BOT\" and (.created_at >= \"$(date -u +%Y-%m-01T00:00:00Z)\")) | .body" |
+    { grep -oP "<!-- cost:\K[^ ]+(?= -->)" || true; } | awk '{s+=$1} END {printf "%.2f", s+0}'
+}
+
 # Every bot comment on the issue, ignoring attempts.
 all_markers() {
   gh api "repos/$GH_REPO/issues/$1/comments" --paginate --jq ".[] | select(.user.login==\"$BOT\") | .body" |

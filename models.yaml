@@ -15,6 +15,7 @@ roles:
 
 limits:
   per_task_usd: 1.5        # a task that has spent this much is stalled and flagged
+  monthly_usd: 45          # no new task starts once this month's recorded spend reaches this (0 = no limit)
   max_rounds: 3            # coder rounds on the normal model; one more round on the escalation model, then stall
   max_changed_lines: 300   # size-check, not counting tests/ and package-lock.json
   max_changed_files: 10

@@ -11,6 +11,13 @@ n=${ISSUE:-}
 run_url="$GITHUB_SERVER_URL/$GH_REPO/actions/runs/$GITHUB_RUN_ID"
 pr=$(pr_for_branch "$branch")
 
+# A cancelled run was replaced by a newer CI run on the same branch (or cancelled by hand, which the
+# watchdog flags). The newer run reports; acting here would start a second, paid coder round in parallel.
+if jq -e '[.[] | .result] | index("cancelled")' <<<"$RESULTS" >/dev/null; then
+  log "this CI run was cancelled; leaving the next step to the run that replaced it"
+  exit 0
+fi
+
 RESULTS=$(jq -c 'del(.head)' <<<"$RESULTS")  # `head` only finds the commit; it is not a check
 failed=$(jq -r 'to_entries[] | select(.value.result != "success") | .key' <<<"$RESULTS" | sort)
 
@@ -33,6 +40,18 @@ if [[ -z $failed ]]; then
   comment "$n" "✅ CI passed on #$pr. Next: adversary review. [Run]($run_url)"
   set_stage "$n" review
   dispatch adversary-review.yml "$branch" "$n" "issue=$n" "pr=$pr"
+  exit 0
+fi
+
+# Failures only in setup steps (checkout, npm ci, installing the browser) are GitHub or network hiccups the
+# coder can't fix. Run CI again once for free instead of paying for a coder round on them.
+failed_steps=$(gh api "repos/$GH_REPO/actions/runs/$GITHUB_RUN_ID/jobs" \
+  --jq '.jobs[] | select(.conclusion == "failure") | .steps[] | select(.conclusion == "failure") | .name')
+code_steps='^(Type check|Build|Unit tests|End-to-end tests|Require the test log|Run guard|Run npx next build)'
+if [[ -n $failed_steps ]] && ! grep -qE "$code_steps" <<<"$failed_steps" && [[ -z $(markers "$n" "ci-retry" | grep -xF "$SHA" || true) ]]; then
+  comment "$n" "🔁 CI on #$pr failed while setting up ($(tr '\n' ',' <<<"$failed_steps" | sed 's/,$//')), not in the tests. Running CI again once, at no AI cost. [Run]($run_url)
+<!-- ci-retry:$SHA -->"
+  dispatch ci.yml "$branch" "$n" "issue=$n"
   exit 0
 fi
 

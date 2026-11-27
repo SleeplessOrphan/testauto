@@ -38,7 +38,8 @@ Workflows start each other with `workflow_dispatch`. That is deliberate: actions
 | Tests are logged | Unit and Playwright runs upload JUnit XML, the Playwright report, traces and screenshots as artifacts (kept 30 days). A run with no log fails. Every agent run's cost and result is a comment on the task issue. |
 | Staging in order | One task runs at a time. Staging runs one at a time (`concurrency: staging`), in merge order, and the next task starts only after staging passes. If a task stalls, the queue waits for it. |
 | Test disputes | If a coder round changes nothing and the coder's notes say a test is wrong, the adversary gets one chance to check that test against the spec. If it corrects the test, the coder carries on; if it keeps the test, the task stalls for you to decide. |
-| Bounded retries and spend | Up to 3 coder rounds on Sonnet, then one round on Opus, then stall. The same failures twice in a row skip straight to the Opus round. A task stalls once it has spent $1.50 (see `models.yaml`). Claude's turn limits cap each run; the Anthropic Console spend limit caps the month. |
+| Bounded retries and spend | Up to 3 coder rounds on Sonnet, then one round on Opus, then stall. The same failures twice in a row skip straight to the Opus round. A task stalls once it has spent $1.50 (see `models.yaml`). Claude's turn limits cap each run. Once this month's recorded spend reaches `monthly_usd` ($45), the dispatcher opens a **Paused: monthly AI budget reached** issue and starts no new task; close it to carry on anyway that month. The Anthropic Console spend limit is the hard backstop. |
+| No paying for hiccups | When CI fails only in a setup step (checkout, `npm ci`, installing the browser), CI runs again once for free instead of starting a coder round. A CI run replaced by a newer one does nothing. A refused merge is tried three times, 20 seconds apart. Staging retries the smoke tests once, a minute later, before reverting. |
 | Timeouts flag stops | Every job has `timeout-minutes`. The watchdog (hourly) stalls a task whose stage workflow failed, or that sat in a stage longer than `stage_minutes` with nothing running, and posts the last log lines. |
 
 A stalled task gets the `stalled` label, a comment with the reason, and a mention of you on the
@@ -57,7 +58,7 @@ one is retried (remove `stalled`, add `queued`) or closed, so later tasks never 
 
 - **Pause everything:** open an issue (any title, e.g. "Pause") and add the label `pause`. Running steps finish and then wait. Close the issue to resume from where it stopped.
 - **Add a task by hand:** open an issue describing it with acceptance criteria and add the label `task`.
-- **Retry a stalled task:** remove `stalled` and add `queued`. Adding `queued` starts the dispatcher straight away. It picks up where it stopped: if the tests and a PR exist, only CI runs again (no AI cost), and the adversary's approval is reused when the code hasn't changed. Each retry gets a fresh allowance: the round limit and the per-task budget count again from the retry, so a retried task can spend up to the budget once more. To start over from scratch on a fresh branch, also add `restart`.
+- **Retry a stalled task:** remove `stalled` and add `queued`. Adding `queued` starts the dispatcher straight away. It picks up where it stopped: if the tests and a PR exist, only CI runs again (no AI cost), and the adversary's approval is reused when the code hasn't changed. Each retry gets a fresh allowance: the round limit and the per-task budget count again from the retry, so a retried task can spend up to the budget once more. If the task was already merged and only staging failed to confirm it (for example Vercel never reported the deploy), the retry just runs the staging check again. To start over from scratch on a fresh branch, also add `restart`. The label changes can be made in any order: the dispatcher waits 20 seconds after `queued` is added, and a task that is both `stalled` and `queued` counts as being retried.
 - **Change a model or limit:** edit `models.yaml` in your own pull request.
 
 ## Why the checks are also commit statuses
@@ -83,5 +84,7 @@ pushed by the repository owner, so you can merge your own changes (for example, 
 
 - Only Anthropic models: every agent runs through `anthropics/claude-code-action`. The `provider` field in `models.yaml` is for iteration two's gateway.
 - The coder and adversary both act through the same GitHub Actions identity. They are kept apart by what each step is allowed to change, not by separate GitHub Apps.
-- No weekly spend report yet. Per-task cost is on each issue and the total is in the Anthropic Console.
+- No weekly spend report yet. Per-task cost is on each issue and the total is in the Anthropic Console. When the last task finishes, the alerts issue gets an "all done" note with the month's spend.
+- Vercel builds only `main` (see `git.deploymentEnabled` in `vercel.json`), not the `task/*` and `revert/*` branches, which keeps well under the Hobby plan's daily deployment limit.
+- If an agent run hits its job timeout, its cost is not recorded on the issue, so the per-task and monthly totals can undercount. The Console total is the true figure.
 - The watchdog runs hourly to stay inside the free Actions minutes; change the cron in `watchdog.yml` if you have more minutes.
