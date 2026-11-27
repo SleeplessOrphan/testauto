@@ -24,8 +24,8 @@ export function PlayerPanel({
 }) {
   return (
     <div className={"question-panel name-p" + player} role="group" aria-label={`Player ${player}: ${name}`}>
-      <span className="player-name">{name}</span>
-      <span className="question-text">
+      <span className="player-name" title={name}>{name}</span>
+      <span className="question-text" title={question}>
         <span className="stat-label">Question: </span>
         {question}
       </span>
