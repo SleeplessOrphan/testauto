@@ -74,7 +74,17 @@ last_body_with() { bot_comments "$1" | jq -r --arg m "$2" '[.[] | select(.body |
 
 task_cost() { markers "$1" cost | awk '{s+=$1} END {printf "%.2f", s+0}'; }
 
-over_budget() { awk -v c="$(task_cost "$1")" -v cap="$(cfg .limits.per_task_usd)" 'BEGIN {exit !(c >= cap)}'; }
+# Re-queuing a stalled task is a person asking for more tries, so the round limit and the budget count
+# again from the last resume. The resume comment records the round it resumed from.
+resume_base() { local b; b=$(last_marker "$1" resume-round); echo "${b:-0}"; }
+
+spend_since_resume() {
+  bot_comments "$1" | jq -r '. as $a
+    | ([range(0; length) | select($a[.].body | contains("<!-- resume-round:"))] | last // 0) as $i
+    | $a[$i:][].body' | grep -oP "<!-- cost:\K[^ ]+(?= -->)" | awk '{s+=$1} END {printf "%.2f", s+0}'
+}
+
+over_budget() { awk -v c="$(spend_since_resume "$1")" -v cap="$(cfg .limits.per_task_usd)" 'BEGIN {exit !(c >= cap)}'; }
 
 # Every bot comment on the issue, ignoring attempts.
 all_markers() {
