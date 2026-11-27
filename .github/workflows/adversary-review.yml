@@ -6,8 +6,11 @@ on:
   workflow_dispatch:
     inputs:
       issue: { description: Task issue number, required: false, default: "" }
-      pr: { description: Pull request number, required: true }
-  pull_request:
+      pr: { description: Pull request number, required: false, default: "" }
+  # Pushes to your own branches: the check passes so your pull requests can merge. No pull_request
+  # trigger, because GitHub holds those runs on the pipeline's PRs and a held run blocks the merge.
+  push:
+    branches-ignore: [main, "task/**", "revert/**"]
 
 permissions:
   contents: write
@@ -25,8 +28,6 @@ env:
 
 jobs:
   adversary-verdict:
-    # Agent PRs also fire pull_request runs, held for approval; they are not needed, so they skip.
-    if: github.event_name != 'pull_request' || !(startsWith(github.head_ref, 'task/') || startsWith(github.head_ref, 'revert/'))
     runs-on: ubuntu-latest
     timeout-minutes: 30
     outputs:
@@ -38,13 +39,13 @@ jobs:
     steps:
       # Your own pull requests are not reviewed by the adversary; the check passes so you can merge them.
       - id: owner
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'push'
         run: |
-          if [[ "${{ github.event.pull_request.user.login }}" == "${{ github.repository_owner }}" ]]; then
-            echo "Pull request by the repository owner: no adversary review needed."
+          if [[ "${{ github.actor }}" == "${{ github.repository_owner }}" ]]; then
+            echo "Pushed by the repository owner: no adversary review needed."
             echo "verdict=approve" >> "$GITHUB_OUTPUT"
           else
-            echo "::error::Only the repository owner's pull requests skip the adversary."
+            echo "::error::Only the repository owner's branches skip the adversary."
             echo "verdict=reject" >> "$GITHUB_OUTPUT"
           fi
 
@@ -125,6 +126,13 @@ jobs:
   pipeline-next:
     needs: adversary-verdict
     if: always() && github.event_name == 'workflow_dispatch'
+    # Only this shell job may post commit statuses (the adversary-verdict status); the agent's job can't.
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      actions: write
+      statuses: write
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
