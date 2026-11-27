@@ -16,7 +16,6 @@ on:
         default: ""
 
 permissions:
-  statuses: write
   contents: read
   issues: write
   pull-requests: write
@@ -165,6 +164,13 @@ jobs:
   # Not a required check: hands the result to the next stage of the pipeline.
   pipeline-next:
     needs: [build, unit, e2e, docs-check, size-check, protected-files]
+    # Only this shell job may post commit statuses (the check results).
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+      actions: write
+      statuses: write
     if: >-
       always() && github.event_name == 'workflow_dispatch' &&
       (startsWith(github.ref_name, 'task/') || startsWith(github.ref_name, 'revert/'))
