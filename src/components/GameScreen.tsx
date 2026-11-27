@@ -17,7 +17,7 @@ import { CORRECT_POINTS, EMPTY_STATS, applyRefresh } from "@/lib/game/scoring";
 import { checkGameEnd } from "@/lib/game/modes";
 import { Countdown } from "./Countdown";
 import { GameTimer } from "./GameTimer";
-import { QuestionPanel } from "./QuestionPanel";
+import { PlayerPanel } from "./PlayerPanel";
 
 /** Small seeded generator so `?seed=N` makes questions and tile positions repeatable. */
 function mulberry32(seed: number) {
@@ -228,7 +228,7 @@ export function GameScreen({ settings, onBack, onFinish }: { settings: GameSetti
         data-p2-segments={seg(s2)}
       >
         <div className="game-names">
-          <QuestionPanel player={1} name={settings.players[0].name} question={state.questions?.[1]?.text ?? ""}
+          <PlayerPanel player={1} name={settings.players[0].name} question={state.questions?.[1]?.text ?? ""}
             score={state.stats?.[1].score ?? 0}
             streak={state.stats?.[1].streak ?? 0}
             lives={state.stats?.[1].lives ?? 3}
@@ -236,7 +236,7 @@ export function GameScreen({ settings, onBack, onFinish }: { settings: GameSetti
             eliminated={state.eliminated?.includes(1) ?? false}
             feedback={feedback[1]}
           />
-          <QuestionPanel player={2} name={settings.players[1].name} question={state.questions?.[2]?.text ?? ""}
+          <PlayerPanel player={2} name={settings.players[1].name} question={state.questions?.[2]?.text ?? ""}
             score={state.stats?.[2].score ?? 0}
             streak={state.stats?.[2].streak ?? 0}
             lives={state.stats?.[2].lives ?? 3}

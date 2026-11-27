@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Live statistics panel: `PlayerPanel` is a named group with a labelled question and an always-visible text status. (#23)
 - Results screen with winner or draw, per-player statistics table, Play Again, Change Settings and Main Menu. (#22)
 - Game mode choice on setup (Timed, Survival, Target Score, Practice), countdown timer, target display, unlimited lives in Practice, and game end with a winner/draw placeholder. (#21)
 - Game mode rules engine (Timed, Survival, Target Score, Practice) with unlimited lives in Practice. (#20)

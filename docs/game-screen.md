@@ -11,7 +11,7 @@ W/A/S/D steer Player 1, arrow keys Player 2 (arrow keys call `preventDefault`). 
 ## Questions and answer tiles
 
 When gameplay begins, one question per player is generated from that player's topics and difficulty and shown
-under their name above the canvas (`QuestionPanel`). `placeAnswerTiles` (`src/lib/game/answers.ts`) puts the three
+under their name above the canvas (`PlayerPanel`: an accessible group with name, question, score, streak, lives and a text status, "Status: Playing" or "Status: Eliminated"). `placeAnswerTiles` (`src/lib/game/answers.ts`) puts the three
 options on random free cells reachable from the owner's head (flood fill; never on snakes, obstacles or other
 tiles). Tiles show the number, the owner's colour and "P1"/"P2". Driving over the other player's tile does nothing.
 If placement fails, `state.status` becomes `ended` and "Round over" is shown. Collecting your own tiles comes next.
