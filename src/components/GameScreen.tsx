@@ -245,7 +245,7 @@ export function GameScreen({ settings, onBack }: { settings: GameSettings; onBac
           />
         </div>
         {state.timeRemaining !== undefined && <GameTimer seconds={state.timeRemaining} />}
-        {mode.kind === "target" && <p>Target: {mode.target}</p>}
+        {mode.kind === "target" && <p className="game-info">Target: {mode.target}</p>}
         <div className="game-board">
           <canvas
             ref={canvasRef}
