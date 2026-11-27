@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useKeyboard } from "@/hooks/useKeyboard";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { createInitialState } from "@/lib/game/state";
 import { accumulate, advance } from "@/lib/game/loop";
 import { queueDirection } from "@/lib/game/movement";
@@ -58,6 +59,8 @@ function startRound(settings: GameSettings, seed: number | null) {
 /** How long the correct answer / praise stays in a player's feedback area. */
 const FEEDBACK_MS = 2000;
 
+type FeedbackKind = "correct" | "incorrect" | "collision";
+
 const pt =(p: { x: number; y: number }) => p.x + "," + p.y;
 
 export function GameScreen({ settings, onBack, onFinish, onRestart }: { settings: GameSettings; onBack: () => void; onFinish: (state: GameState) => void; onRestart: () => void }) {
@@ -81,6 +84,8 @@ export function GameScreen({ settings, onBack, onFinish, onRestart }: { settings
   const runningRef = useRef(false);
   const rngRef = useRef(seed === null ? Math.random : mulberry32(seed + 1));
   const [feedback, setFeedback] = useState({ 1: "", 2: "" });
+  const [kinds, setKinds] = useState<Record<PlayerId, FeedbackKind | "">>({ 1: "", 2: "" });
+  const reducedMotion = useReducedMotion();
   const seenRef = useRef({ 1: 0, 2: 0 });
   const seenCollisions = useRef({ 1: 0, 2: 0 });
   const timersRef = useRef<Partial<Record<PlayerId, ReturnType<typeof setTimeout>>>>({});
@@ -174,8 +179,19 @@ export function GameScreen({ settings, onBack, onFinish, onRestart }: { settings
 
   useEffect(() => {
     const ctx = canvasRef.current?.getContext("2d");
-    if (ctx) drawGame(ctx, state);
-  }, [state]);
+    if (ctx) drawGame(ctx, state, { hit: { 1: kinds[1] === "collision", 2: kinds[2] === "collision" } });
+  }, [state, kinds]);
+
+  // Text plus a data marker, so the cue is never colour alone.
+  const show = useCallback((p: PlayerId, text: string, kind: FeedbackKind) => {
+    setFeedback((f) => ({ ...f, [p]: text }));
+    setKinds((k) => ({ ...k, [p]: kind }));
+    clearTimeout(timersRef.current[p]);
+    timersRef.current[p] = setTimeout(() => {
+      setFeedback((f) => ({ ...f, [p]: "" }));
+      setKinds((k) => ({ ...k, [p]: "" }));
+    }, FEEDBACK_MS);
+  }, []);
 
   useEffect(() => {
     for (const p of [1, 2] as const) {
@@ -185,22 +201,18 @@ export function GameScreen({ settings, onBack, onFinish, onRestart }: { settings
       const text = r.correct
         ? `Correct! +${CORRECT_POINTS}` + (r.bonus ? ` Streak bonus! +${r.bonus}` : "")
         :`Incorrect. The answer was ${r.answer}`;
-      setFeedback((f) => ({ ...f, [p]: text }));
-      clearTimeout(timersRef.current[p]);
-      timersRef.current[p] = setTimeout(() => setFeedback((f) => ({ ...f, [p]: "" })), FEEDBACK_MS);
+      show(p, text, r.correct ? "correct" : "incorrect");
     }
-  }, [state.results]);
+  }, [state.results, show]);
   useEffect(() => {
     for (const p of [1, 2] as const) {
       const c = state.stats?.[p].collisions ?? 0;
       if (c === seenCollisions.current[p]) continue;
       seenCollisions.current[p] = c;
       const text = state.stats![p].lives > 0 ? "Crash! -1 life" : "Crash! Eliminated";
-      setFeedback((f) => ({ ...f, [p]: text }));
-      clearTimeout(timersRef.current[p]);
-      timersRef.current[p] = setTimeout(() => setFeedback((f) => ({ ...f, [p]: "" })), FEEDBACK_MS);
+      show(p, text, "collision");
     }
-  }, [state.stats]);
+  }, [state.stats, show]);
   useEffect(() => {
     const timers = timersRef.current;
     return () => Object.values(timers).forEach(clearTimeout);
@@ -226,6 +238,7 @@ export function GameScreen({ settings, onBack, onFinish, onRestart }: { settings
     <main className="game-screen">
       <div
         data-testid="game"
+        data-reduced-motion={reducedMotion ? "true" : "false"}
         data-phase={ended ? "ended" : paused ? "paused" : count === null ? "running" : "countdown"}
         data-tick={ticks}
         data-seed={seed ?? undefined}
@@ -256,6 +269,7 @@ export function GameScreen({ settings, onBack, onFinish, onRestart }: { settings
             unlimitedLives={mode.kind === "practice"}
             eliminated={state.eliminated?.includes(1) ?? false}
             feedback={feedback[1]}
+            feedbackKind={kinds[1]}
           />
           <PlayerPanel player={2} name={settings.players[1].name} question={state.questions?.[2]?.text ?? ""}
             score={state.stats?.[2].score ?? 0}
@@ -264,6 +278,7 @@ export function GameScreen({ settings, onBack, onFinish, onRestart }: { settings
             unlimitedLives={mode.kind === "practice"}
             eliminated={state.eliminated?.includes(2) ?? false}
             feedback={feedback[2]}
+            feedbackKind={kinds[2]}
           />
         </div>
         {state.timeRemaining !== undefined && <GameTimer seconds={state.timeRemaining} />}
