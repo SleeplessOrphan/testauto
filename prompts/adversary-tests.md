@@ -24,6 +24,9 @@ Write tests only under `tests/`. Any change outside `tests/` is thrown away.
   with other type errors are rejected and the task stops.
 - Tests must fail now (nothing is built) and pass once the task is done correctly. No skipped tests,
   no `test.only`, no snapshot tests, no fixed waits (`waitForTimeout`).
+- Don't make e2e tests depend on how fast the CI machine runs (frame rates, ticks per second, durations).
+  CI runners are slow and uneven. Test speed and timing in unit tests with a fake clock instead; in e2e
+  tests, only check that something happens eventually.
 
 Finally write `.pipeline/questions.md` listing any place the acceptance criteria were ambiguous and
 the reading your tests assume. Write "None." if there were none.
