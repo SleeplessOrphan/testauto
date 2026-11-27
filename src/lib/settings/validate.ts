@@ -1,11 +1,12 @@
 import { defaultName } from "./defaults";
+import { DEFAULT_GAMEPLAY, type GameplayDifficulty } from "./gameplay";
 import type { GameSettings, PlayerForm, PlayerSettings } from "./types";
 
 export type SetupErrors = [string | null, string | null];
 
 export type SetupResult = { ok: true; settings: GameSettings } | { ok: false; errors: SetupErrors };
 
-export function buildSettings(forms: [PlayerForm, PlayerForm]): SetupResult {
+export function buildSettings(forms: [PlayerForm, PlayerForm], gameplay: GameplayDifficulty = DEFAULT_GAMEPLAY): SetupResult {
   const message = (f: PlayerForm, i: 0 | 1) =>
     f.topics.length === 0 ? `${defaultName(i)} must select at least one topic.` : null;
   const errors: SetupErrors = [message(forms[0], 0), message(forms[1], 1)];
@@ -15,5 +16,5 @@ export function buildSettings(forms: [PlayerForm, PlayerForm]): SetupResult {
     difficulty: f.difficulty,
     topics: [...f.topics],
   });
-  return { ok: true, settings: { players: [player(forms[0], 0), player(forms[1], 1)] } };
+  return { ok: true, settings: { players: [player(forms[0], 0), player(forms[1], 1)], gameplay } };
 }

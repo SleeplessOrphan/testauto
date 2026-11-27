@@ -11,6 +11,8 @@ import { CANVAS_HEIGHT, CANVAS_WIDTH, drawGame } from "@/lib/render/canvas";
 import type { GameSettings } from "@/lib/settings/types";
 import { generateQuestion } from "@/lib/maths/generate";
 import { placeAnswerTiles } from "@/lib/game/answers";
+import { generateObstacles } from "@/lib/game/obstacles";
+import { GAMEPLAY_LEVELS } from "@/lib/settings/gameplay";
 import { CORRECT_POINTS, EMPTY_STATS, applyRefresh } from "@/lib/game/scoring";
 import { Countdown } from "./Countdown";
 import { QuestionPanel } from "./QuestionPanel";
@@ -31,6 +33,8 @@ function mulberry32(seed: number) {
 function startRound(settings: GameSettings, seed: number | null) {
   const rng = seed === null ? Math.random : mulberry32(seed);
   let state = createInitialState();
+  // Obstacles go down first so answer tiles are placed around them.
+  state = { ...state, obstacles: generateObstacles(state, GAMEPLAY_LEVELS[settings.gameplay].obstacles, rng) };
   const questions = settings.players.map((p) => generateQuestion(p.topics, p.difficulty, rng));
   for (const player of [1, 2] as const) {
     const placed = placeAnswerTiles(state, player, questions[player - 1].options, rng);
@@ -58,6 +62,7 @@ export function GameScreen({ settings, onBack }: { settings: GameSettings; onBac
   const [round] = useState(() => startRound(settings, seed));
   const [state, setState] = useState<GameState>(round.state);
   const [count, setCount] = useState<number | null>(3);
+  const tickRate = GAMEPLAY_LEVELS[settings.gameplay].cellsPerSecond;
   const [ticks, setTicks] = useState(0);
   const stateRef = useRef(round.state);
   const runningRef = useRef(false);
@@ -83,7 +88,7 @@ export function GameScreen({ settings, onBack }: { settings: GameSettings; onBac
     let last = performance.now();
     let rest = 0;
     const frame = (now: number) => {
-      const a = accumulate(rest, now - last);
+      const a = accumulate(rest, now - last, 1000 / tickRate);
       last = now;
       rest = a.remainderMs;
       if (a.ticks > 0) {
@@ -109,7 +114,7 @@ export function GameScreen({ settings, onBack }: { settings: GameSettings; onBac
     };
     raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(raf);
-  }, [count, state.status, settings.players]);
+  }, [count, state.status, settings.players, tickRate]);
 
   const onDirection = useCallback((player: PlayerId, direction: Direction) => {
     if (!runningRef.current) return;
@@ -168,6 +173,8 @@ export function GameScreen({ settings, onBack }: { settings: GameSettings; onBac
         data-phase={count === null ? "running" : "countdown"}
         data-tick={ticks}
         data-seed={seed ?? undefined}
+        data-tick-rate={tickRate}
+        data-obstacles={JSON.stringify(state.obstacles ?? [])}
         data-tiles={JSON.stringify(state.tiles ?? [])}
         data-status={state.status ?? "playing"}
         data-p1-score={state.stats?.[1].score ?? 0}

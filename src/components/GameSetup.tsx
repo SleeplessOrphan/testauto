@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { DIFFICULTY_OPTIONS, TOPIC_OPTIONS, defaultName, defaultPlayerForm } from "@/lib/settings/defaults";
 import type { GameSettings, PlayerForm } from "@/lib/settings/types";
+import { DEFAULT_GAMEPLAY, GAMEPLAY_LEVELS, type GameplayDifficulty } from "@/lib/settings/gameplay";
 import { buildSettings, type SetupErrors } from "@/lib/settings/validate";
 import { ScreenHeading } from "./ScreenHeading";
 
@@ -10,6 +11,7 @@ type Forms = [PlayerForm, PlayerForm];
 
 export function GameSetup({ onBack, onStart }: { onBack: () => void; onStart: (s: GameSettings) => void }) {
   const [forms, setForms] = useState<Forms>(() => [defaultPlayerForm(), defaultPlayerForm()]);
+  const [gameplay, setGameplay] = useState<GameplayDifficulty>(DEFAULT_GAMEPLAY);
   const [errors, setErrors] = useState<SetupErrors>([null, null]);
 
   const update = (i: 0 | 1, patch: Partial<PlayerForm>) => {
@@ -25,7 +27,7 @@ export function GameSetup({ onBack, onStart }: { onBack: () => void; onStart: (s
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    const result = buildSettings(forms);
+    const result = buildSettings(forms, gameplay);
     if (result.ok) onStart(result.settings);
     else setErrors(result.errors);
   };
@@ -91,6 +93,15 @@ export function GameSetup({ onBack, onStart }: { onBack: () => void; onStart: (s
             </fieldset>
           );
         })}
+        <fieldset>
+          <legend>Gameplay difficulty</legend>
+          {(Object.keys(GAMEPLAY_LEVELS) as GameplayDifficulty[]).map((g) => (
+            <label key={g}>
+              <input type="radio" name="gameplay" checked={gameplay === g} onChange={() => setGameplay(g)} />{" "}
+              {GAMEPLAY_LEVELS[g].label}
+            </label>
+          ))}
+        </fieldset>
         <button type="submit">Start Game</button>
         <button type="button" onClick={onBack}>Back</button>
       </form>
