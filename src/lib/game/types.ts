@@ -72,6 +72,8 @@ export interface GameState {
   refresh?: PlayerId[];
   /** Players who lost their final life; their snakes and tiles are gone. */
   eliminated?: PlayerId[];
+  /** Seconds left in Timed mode. */
+  timeRemaining?: number;
   /** Set to 'ended' when the round is over. */
   status?: 'ended';
 }

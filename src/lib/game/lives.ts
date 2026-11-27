@@ -1,5 +1,6 @@
 import { GRID_COLUMNS, GRID_ROWS } from './constants';
 import { EMPTY_STATS, MIN_SNAKE_LENGTH } from './scoring';
+import type { GameMode } from './modes';
 import type { Direction, GameState, PlayerId, Position, Snake } from './types';
 
 export const STARTING_LIVES = 3;
@@ -49,12 +50,19 @@ function placements(blockers: Position[], margin: boolean): Placement[] {
  * three segments (score, question and tiles are kept); on the last life the player is eliminated and
  * their snake and tiles are removed. Never mutates the state.
  */
-export function loseLife(state: GameState, player: PlayerId, rng: () => number = Math.random): GameState {
+export function loseLife(
+  state: GameState,
+  player: PlayerId,
+  rng: () => number = Math.random,
+  mode?: GameMode,
+): GameState {
+  const practice = mode?.kind === 'practice';
   const old = state.snakes.find((s) => s.player === player);
   if (!old || state.eliminated?.includes(player)) return state;
 
   const before = { 1: EMPTY_STATS, 2: EMPTY_STATS, ...state.stats }[player];
-  const lives = before.lives - 1;
+  // Practice has unlimited lives: keep the count above 0 so nobody is ever eliminated.
+  const lives = practice ? Math.max(before.lives, 1) : before.lives - 1;
   const stats = {
     1: EMPTY_STATS,
     2: EMPTY_STATS,
@@ -70,7 +78,7 @@ export function loseLife(state: GameState, player: PlayerId, rng: () => number =
     tiles: state.tiles?.filter((t) => t.player !== player),
     eliminated: [...(state.eliminated ?? []), player],
   });
-  if (lives <= 0) return eliminate();
+  if (!practice && lives <= 0) return eliminate();
 
   const blockers = [
     ...others.flatMap((s) => s.segments),
@@ -80,7 +88,7 @@ export function loseLife(state: GameState, player: PlayerId, rng: () => number =
   // If the board is too crowded for a comfortable spot, accept touching cells before giving up.
   let options = placements(blockers, true);
   if (options.length === 0) options = placements(blockers, false);
-  if (options.length === 0) return eliminate();
+  if (options.length === 0) return practice ? { ...state, stats } : eliminate();
 
   // Any spot with a clear run ahead will do; always taking the longest run made a lone snake outlive slow games.
   const pick = options[Math.min(options.length - 1, Math.floor(rng() * options.length))];

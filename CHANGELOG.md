@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Game mode rules engine (Timed, Survival, Target Score, Practice) with unlimited lives in Practice. (#20)
 - Gameplay difficulty (Easy 3 cells/s no obstacles, Medium 5/s 4 obstacles, Hard 8/s 8 obstacles) with obstacle generation, drawing and collisions. (#19)
 - Lives and respawning: three lives each, a crash respawns the snake safely (score, question and tiles kept), the last life eliminates the player; lives and crash feedback in the panel. (#18)
 - Answer streaks: +20 bonus at 5 and 10 correct in a row, streak shown next to the score, longest streak tracked. (#17)
