@@ -6,7 +6,8 @@ source "$(dirname "$0")/lib.sh"
 sha=${SHA:?} n=${ISSUE:-} mode=${MODE:-task}
 run_url="$GITHUB_SERVER_URL/$GH_REPO/actions/runs/$GITHUB_RUN_ID"
 
-# 1. Wait up to 15 minutes for Vercel's deployment of this commit.
+# 1. Wait up to 15 minutes for Vercel's deployment of this commit. Vercel reports it either as a GitHub
+# Deployment or, for this repository, only as a "Vercel" commit status on the commit; accept either.
 state="" url=""
 for _ in $(seq 1 45); do
   dep=$(gh api "repos/$GH_REPO/deployments?sha=$sha&per_page=30" \
@@ -14,10 +15,14 @@ for _ in $(seq 1 45); do
   if [[ -n $dep ]]; then
     read -r state url < <(gh api "repos/$GH_REPO/deployments/$dep/statuses?per_page=1" \
       --jq '.[0] | "\(.state // "pending") \(.environment_url // "")"')
-    if [[ $state =~ ^(success|failure|error)$ ]]; then break; fi
+  else
+    state=$(gh api "repos/$GH_REPO/commits/$sha/statuses?per_page=100" \
+      --jq '[.[] | select(.context | test("^vercel"; "i"))][0].state // empty')
   fi
+  if [[ $state =~ ^(success|failure|error)$ ]]; then break; fi
   sleep 20
 done
+[[ $state =~ ^(success|failure|error)$ ]] || state=""  # still pending after 15 minutes counts as not found
 echo "Deployment state: ${state:-not found} ${url}"
 
 fail() { # reason [log]
@@ -69,7 +74,7 @@ if [[ $mode == revert ]]; then
   exit 0
 fi
 if [[ -n $n ]]; then
-  remove_labels "$n" in-progress "stage:staging"
+  remove_labels "$n" in-progress stalled "stage:staging"
   add_labels "$n" done
   gh issue close "$n" --comment "🚀 Live on staging ($target) and the smoke tests passed. Task done. Total spend: \$$(task_cost "$n")." >/dev/null
 fi
