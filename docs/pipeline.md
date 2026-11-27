@@ -20,7 +20,7 @@ Each task is a GitHub issue. Its labels show where it is: `queued`, then `in-pro
 | `stage:code` | `coder.yml` | The coder (Sonnet) makes the tests pass, updates `docs/` and `CHANGELOG.md`, and the pipeline opens or updates the pull request. | ci |
 | `stage:ci` | `ci.yml` | build, unit, e2e, docs-check, size-check, protected-files. Red sends feedback to the coder for another round. | review |
 | `stage:review` | `adversary-review.yml` | The adversary reviews the diff and probes the running app. It can add new failing tests. Its verdict is the `adversary-verdict` check. Approve merges the PR. | staging |
-| `stage:staging` | `staging.yml` | Waits for Vercel to deploy the merge, runs `tests/smoke` against it. Pass closes the task. Fail opens a revert PR, which is checked and merged automatically. | dispatcher |
+| `stage:staging` | `staging.yml` | Waits for Vercel to deploy the merge (a GitHub Deployment or Vercel's commit status on the merge commit), runs `tests/smoke` against it. Pass closes the task. Fail opens a revert PR, which is checked and merged automatically. | dispatcher |
 
 Workflows start each other with `workflow_dispatch`. That is deliberate: actions taken with the built-in
 `GITHUB_TOKEN` (pushes, PRs, merges) do not trigger other workflows, so each step starts the next one explicitly. `ci` and `adversary-review` are always started on main and told which branch to check, so they run with main's current settings even on a task branch made before a pipeline change.
