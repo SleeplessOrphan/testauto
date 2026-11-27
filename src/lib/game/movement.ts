@@ -1,4 +1,5 @@
 import { resolveCollisions } from './collision';
+import { EMPTY_STATS, nextSnakeLength, nextStats } from './scoring';
 import type { Direction, GameState, PlayerId, Position } from './types';
 
 const DELTAS: Record<Direction, Position> = {
@@ -35,17 +36,52 @@ export function step(state: GameState): GameState {
   }
   const collisions = resolveCollisions(state, heads);
 
+  // A moving snake whose head lands on one of its own tiles collects it.
+  const collected = new Map<PlayerId, boolean>();
+  for (const s of state.snakes) {
+    const q = state.questions?.[s.player];
+    if (!q || collisions.includes(s.player)) continue;
+    const h = heads[s.player];
+    const tile = (state.tiles ?? []).find((t) => t.player === s.player && t.x === h.x && t.y === h.y);
+    if (tile) collected.set(s.player, tile.value === q.answer);
+  }
+
+  let scoring: Partial<GameState> = {};
+  if (collected.size > 0) {
+    const stats = { 1: EMPTY_STATS, 2: EMPTY_STATS, ...state.stats };
+    const results = { ...state.results };
+    for (const [p, ok] of collected) {
+      stats[p] = nextStats(stats[p], ok);
+      results[p] = { seq: (state.results?.[p]?.seq ?? 0) + 1, correct: ok, answer: state.questions![p]!.answer };
+    }
+    scoring = {
+      stats,
+      results,
+      refresh: [...(state.refresh ?? []), ...collected.keys()],
+      tiles: (state.tiles ?? []).filter((t) => !collected.has(t.player)),
+    };
+  }
+
   return {
     ...state,
+    ...scoring,
     collisions,
-    snakes: state.snakes.map((s) =>
-      collisions.includes(s.player)
-        ? s
-        : {
-            ...s,
-            direction: s.pendingDirection,
-            segments: [heads[s.player], ...(s.growing ? s.segments : s.segments.slice(0, -1))],
-          },
-    ),
+    snakes: state.snakes.map((s) => {
+      if (collisions.includes(s.player)) return s;
+      const ok = collected.get(s.player);
+      if (ok === undefined) {
+        return {
+          ...s,
+          direction: s.pendingDirection,
+          segments: [heads[s.player], ...(s.growing ? s.segments : s.segments.slice(0, -1))],
+        };
+      }
+      // Growth keeps the tail; shrinking trims the end, never below the minimum length.
+      return {
+        ...s,
+        direction: s.pendingDirection,
+        segments: [heads[s.player], ...s.segments].slice(0, nextSnakeLength(s.segments.length, ok)),
+      };
+    }),
   };
 }

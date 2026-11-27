@@ -42,8 +42,9 @@ export function advance(state: GameState): GameState {
       }
     }),
   );
+  // Keep step()'s scoring changes (tiles, stats, refresh) along with the snakes.
   return {
-    ...state,
+    ...moved,
     snakes: state.snakes.map((s, i) =>
       s.stopped ? s : blocked[i] ? { ...s, stopped: true } : moved.snakes[i],
     ),

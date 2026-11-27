@@ -11,6 +11,7 @@ import { CANVAS_HEIGHT, CANVAS_WIDTH, drawGame } from "@/lib/render/canvas";
 import type { GameSettings } from "@/lib/settings/types";
 import { generateQuestion } from "@/lib/maths/generate";
 import { placeAnswerTiles } from "@/lib/game/answers";
+import { CORRECT_POINTS, EMPTY_STATS, applyRefresh } from "@/lib/game/scoring";
 import { Countdown } from "./Countdown";
 import { QuestionPanel } from "./QuestionPanel";
 
@@ -36,8 +37,19 @@ function startRound(settings: GameSettings, seed: number | null) {
     if (!placed.ok) return { state: { ...state, status: "ended" as const }, questions };
     state = { ...state, tiles: [...(state.tiles ?? []), ...placed.tiles] };
   }
+  state = {
+    ...state,
+    stats: { 1: EMPTY_STATS, 2: EMPTY_STATS },
+    questions: {
+      1: { text: questions[0].text, answer: questions[0].answer },
+      2: { text: questions[1].text, answer: questions[1].answer },
+    },
+  };
   return { state, questions };
 }
+
+/** How long the correct answer / praise stays in a player's feedback area. */
+const FEEDBACK_MS = 2000;
 
 const pt = (p: { x: number; y: number }) => p.x + "," + p.y;
 
@@ -49,6 +61,10 @@ export function GameScreen({ settings, onBack }: { settings: GameSettings; onBac
   const [ticks, setTicks] = useState(0);
   const stateRef = useRef(round.state);
   const runningRef = useRef(false);
+  const rngRef = useRef(seed === null ? Math.random : mulberry32(seed + 1));
+  const [feedback, setFeedback] = useState({ 1: "", 2: "" });
+  const seenRef = useRef({ 1: 0, 2: 0 });
+  const timersRef = useRef<Partial<Record<PlayerId, ReturnType<typeof setTimeout>>>>({});
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -71,7 +87,19 @@ export function GameScreen({ settings, onBack }: { settings: GameSettings; onBac
       rest = a.remainderMs;
       if (a.ticks > 0) {
         let next = stateRef.current;
-        for (let i = 0; i < a.ticks; i++) next = advance(next);
+        for (let i = 0; i < a.ticks; i++) {
+          // A collected question is replaced at the start of the following cycle.
+          next = applyRefresh(
+            next,
+            (p) => {
+              const pl = settings.players[p - 1];
+              const q = generateQuestion(pl.topics, pl.difficulty, rngRef.current);
+              return { text: q.text, answer: q.answer, options: q.options };
+            },
+            rngRef.current,
+          );
+          next = advance(next);
+        }
         stateRef.current = next;
         setState(next);
         setTicks((t) => t + a.ticks);
@@ -80,7 +108,7 @@ export function GameScreen({ settings, onBack }: { settings: GameSettings; onBac
     };
     raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(raf);
-  }, [count, state.status]);
+  }, [count, state.status, settings.players]);
 
   const onDirection = useCallback((player: PlayerId, direction: Direction) => {
     if (!runningRef.current) return;
@@ -93,6 +121,22 @@ export function GameScreen({ settings, onBack }: { settings: GameSettings; onBac
     if (ctx) drawGame(ctx, state);
   }, [state]);
 
+  useEffect(() => {
+    for (const p of [1, 2] as const) {
+      const r = state.results?.[p];
+      if (!r || r.seq === seenRef.current[p]) continue;
+      seenRef.current[p] = r.seq;
+      const text = r.correct ? `Correct! +${CORRECT_POINTS}` : `Incorrect. The answer was ${r.answer}`;
+      setFeedback((f) => ({ ...f, [p]: text }));
+      clearTimeout(timersRef.current[p]);
+      timersRef.current[p] = setTimeout(() => setFeedback((f) => ({ ...f, [p]: "" })), FEEDBACK_MS);
+    }
+  }, [state.results]);
+  useEffect(() => {
+    const timers = timersRef.current;
+    return () => Object.values(timers).forEach(clearTimeout);
+  }, []);
+
   const [s1, s2] = state.snakes;
   return (
     <main className="game-screen">
@@ -103,6 +147,12 @@ export function GameScreen({ settings, onBack }: { settings: GameSettings; onBac
         data-seed={seed ?? undefined}
         data-tiles={JSON.stringify(state.tiles ?? [])}
         data-status={state.status ?? "playing"}
+        data-p1-score={state.stats?.[1].score ?? 0}
+        data-p2-score={state.stats?.[2].score ?? 0}
+        data-p1-correct={state.stats?.[1].correct ?? 0}
+        data-p2-correct={state.stats?.[2].correct ?? 0}
+        data-p1-incorrect={state.stats?.[1].incorrect ?? 0}
+        data-p2-incorrect={state.stats?.[2].incorrect ?? 0}
         data-p1-head={pt(s1.segments[0])}
         data-p2-head={pt(s2.segments[0])}
         data-p1-length={s1.segments.length}
@@ -113,8 +163,14 @@ export function GameScreen({ settings, onBack }: { settings: GameSettings; onBac
         data-p2-segments={s2.segments.map(pt).join(";")}
       >
         <div className="game-names">
-          <QuestionPanel player={1} name={settings.players[0].name} question={round.questions[0].text} />
-          <QuestionPanel player={2} name={settings.players[1].name} question={round.questions[1].text} />
+          <QuestionPanel player={1} name={settings.players[0].name} question={state.questions?.[1]?.text ?? ""}
+            score={state.stats?.[1].score ?? 0}
+            feedback={feedback[1]}
+          />
+          <QuestionPanel player={2} name={settings.players[1].name} question={state.questions?.[2]?.text ?? ""}
+            score={state.stats?.[2].score ?? 0}
+            feedback={feedback[2]}
+          />
         </div>
         <div className="game-board">
           <canvas
