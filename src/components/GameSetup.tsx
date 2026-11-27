@@ -129,8 +129,8 @@ export function GameSetup({ onBack, onStart }: { onBack: () => void; onStart: (s
             <legend>Duration</legend>
             {([1, 3, 5] as const).map((m) => (
               <label key={m}>
-                <input type="radio" name="duration" checked={minutes === m} onChange={() => setMinutes(m)} />{" "}
-                {m} {m === 1 ? "minute" : "minutes"}
+                <input type="radio" name="duration" checked={minutes === m} onChange={() => setMinutes(m)} />
+                <span>{`${m} ${m === 1 ? "minute" : "minutes"}`}</span>
               </label>
             ))}
           </fieldset>

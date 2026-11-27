@@ -91,6 +91,9 @@ export function GameScreen({ settings, onBack }: { settings: GameSettings; onBac
   const timersRef = useRef<Partial<Record<PlayerId, ReturnType<typeof setTimeout>>>>({});
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  // The setup form is taller than the window, so the page may arrive scrolled.
+  useEffect(() => window.scrollTo(0, 0), []);
+
   useEffect(() => {
     if (count === null) {
       runningRef.current = true;
