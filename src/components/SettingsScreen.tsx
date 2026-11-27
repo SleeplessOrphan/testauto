@@ -1,7 +1,9 @@
+import { ScreenHeading } from "./ScreenHeading";
+
 export function SettingsScreen({ onBack }: { onBack: () => void }) {
   return (
     <main>
-      <h2>Settings</h2>
+      <ScreenHeading level={2}>Settings</ScreenHeading>
       <button type="button" onClick={onBack}>Back</button>
     </main>
   );

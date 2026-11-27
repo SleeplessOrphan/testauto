@@ -1,19 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Instructions } from "./Instructions";
+import { ScreenHeading } from "./ScreenHeading";
 import { SettingsScreen } from "./SettingsScreen";
 
 type Screen = "menu" | "setup" | "instructions" | "settings";
 
 export function MainMenu() {
   const [screen, setScreen] = useState<Screen>("menu");
-  const back = () => setScreen("menu");
+  const navigated = useRef(false);
+  const go = (next: Screen) => {
+    navigated.current = true;
+    setScreen(next);
+  };
+  const back = () => go("menu");
 
   if (screen === "setup") {
     return (
       <main>
-        <h2>Game setup</h2>
+        <ScreenHeading level={2}>Game setup</ScreenHeading>
         <button type="button" onClick={back}>Back</button>
       </main>
     );
@@ -23,11 +29,11 @@ export function MainMenu() {
 
   return (
     <main>
-      <h1>Maths Snake</h1>
+      <ScreenHeading level={1} focus={navigated.current}>Maths Snake</ScreenHeading>
       <nav aria-label="Main menu" className="menu">
-        <button type="button" onClick={() => setScreen("setup")}>Play</button>
-        <button type="button" onClick={() => setScreen("instructions")}>Instructions</button>
-        <button type="button" onClick={() => setScreen("settings")}>Settings</button>
+        <button type="button" onClick={() => go("setup")}>Play</button>
+        <button type="button" onClick={() => go("instructions")}>Instructions</button>
+        <button type="button" onClick={() => go("settings")}>Settings</button>
       </nav>
     </main>
   );
