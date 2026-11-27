@@ -1,11 +1,5 @@
-import { appStatus } from "@/lib/status";
+import { MainMenu } from "@/components/MainMenu";
 
 export default function Home() {
-  const status = appStatus();
-  return (
-    <main>
-      <h1>testauto</h1>
-      <p data-testid="status">{status}</p>
-    </main>
-  );
+  return <MainMenu />;
 }

@@ -22,6 +22,7 @@ correct answers to maths questions. Built autonomously, one small task at a time
 | `spec/app.md` | The spec: goals, user stories, acceptance criteria. Agents never edit it. |
 | `src/app/` | Pages and routes (App Router). `page.tsx` is the home page. |
 | `src/app/api/health/route.ts` | Health check used by the staging smoke test. Keep it. |
+| `src/components/` | React screens: `MainMenu` switches between menu, setup, instructions and settings. |
 | `src/lib/` | Plain TypeScript logic (game rules, question generation). Keep it free of React so it is unit-testable. |
 | `src/lib/game/` | Game engine: grid constants, types, initial state, movement (`step`, `queueDirection`), key mapping. |
 | `src/lib/maths/` | Question generation: `generate.ts` entry point, `topics/` per-topic generators, `distractors.ts`, `random.ts`. |
