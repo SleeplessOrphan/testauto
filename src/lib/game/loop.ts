@@ -18,17 +18,33 @@ export function accumulate(remainderMs: number, frameMs: number, tickMs = TICK_M
 /** One movement cycle. A snake that would leave the grid or hit a snake stays put for good (lives come later). */
 export function advance(state: GameState): GameState {
   const moved = step(state);
+  // A moving snake frees its tail cell, but a stopped snake keeps it.
   const occupied = new Set(
-    state.snakes.flatMap((s) => s.segments.slice(0, -1).map((p) => p.x + ',' + p.y)),
+    state.snakes.flatMap((s) =>
+      (s.stopped ? s.segments : s.segments.slice(0, -1)).map((p) => p.x + ',' + p.y),
+    ),
+  );
+  const key = (i: number) => moved.snakes[i].segments[0].x + ',' + moved.snakes[i].segments[0].y;
+  const blocked = state.snakes.map((s, i) => {
+    if (s.stopped) return false;
+    const head = moved.snakes[i].segments[0];
+    return (
+      head.x < 0 || head.y < 0 || head.x >= GRID_COLUMNS || head.y >= GRID_ROWS ||
+      occupied.has(key(i))
+    );
+  });
+  // Two heads entering the same empty cell stop both snakes.
+  state.snakes.forEach((a, i) =>
+    state.snakes.forEach((b, j) => {
+      if (i < j && !a.stopped && !b.stopped && key(i) === key(j)) {
+        blocked[i] = true;
+        blocked[j] = true;
+      }
+    }),
   );
   return {
-    snakes: state.snakes.map((s, i) => {
-      if (s.stopped) return s;
-      const head = moved.snakes[i].segments[0];
-      const blocked =
-        head.x < 0 || head.y < 0 || head.x >= GRID_COLUMNS || head.y >= GRID_ROWS ||
-        occupied.has(head.x + ',' + head.y);
-      return blocked ? { ...s, stopped: true } : moved.snakes[i];
-    }),
+    snakes: state.snakes.map((s, i) =>
+      s.stopped ? s : blocked[i] ? { ...s, stopped: true } : moved.snakes[i],
+    ),
   };
 }

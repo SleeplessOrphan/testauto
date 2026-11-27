@@ -6,7 +6,7 @@ Player 1 is blue with a "1" on the head, Player 2 is orange with a "2".
 
 Start Game shows a polite live-region countdown (3, 2, 1). Keys are ignored until it ends. Then a
 `requestAnimationFrame` loop with an accumulator ticks at 5 per second (`src/lib/game/loop.ts`).
-W/A/S/D steer Player 1, arrow keys Player 2 (arrow keys call `preventDefault`). A snake that hits a wall or a snake stops.
+W/A/S/D steer Player 1, arrow keys Player 2 (arrow keys call `preventDefault`). A snake that hits a wall or a snake stops. If both heads enter the same cell on one tick, both snakes stop. A stopped snake keeps blocking all its cells, including its tail.
 
 ## Testing hook
 

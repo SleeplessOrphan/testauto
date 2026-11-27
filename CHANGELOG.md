@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Fixed
+- Snakes whose heads enter the same cell now both stop, and a stopped snake's tail blocks the other snake. (#14)
+
 ### Added
 - Canvas game screen with countdown, fixed-rate loop and keyboard controls. See `docs/game-screen.md`. (#14)
 - Game setup screen with names, per-player difficulty and topics, validation and a placeholder game screen. See `docs/game-setup.md`. (#13)
