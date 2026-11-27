@@ -25,7 +25,7 @@ correct answers to maths questions. Built autonomously, one small task at a time
 | `src/components/` | React screens: `MainMenu` switches between menu, setup, game, results, instructions and settings. |
 | `src/lib/` | Plain TypeScript logic (game rules, question generation). Keep it free of React so it is unit-testable. |
 | `src/lib/game/` | Game engine: grid constants, types, initial state, movement (`step`, `queueDirection`), scoring (`scoring.ts`), results statistics (`results.ts`), lives and respawning (`lives.ts`), mode end rules (`modes.ts`), collision (`resolveCollisions`), obstacle generation (`obstacles.ts`), key mapping, tick loop (`loop.ts`), `?seed=` parsing. |
-| `src/lib/render/` | Canvas drawing (no game logic). `src/hooks/` holds React hooks (keyboard). |
+| `src/lib/render/` | Canvas drawing (no game logic). `src/hooks/` holds React hooks (keyboard, reduced motion). |
 | `src/lib/settings/` | `GameSettings` types, gameplay difficulty levels (`gameplay.ts`), setup defaults and validation (`buildSettings`). |
 | `src/lib/maths/` | Question generation: `generate.ts` entry point, `topics/` per-topic generators, `distractors.ts`, `random.ts`. |
 | `tests/unit/` | Vitest tests, `*.test.ts`. |

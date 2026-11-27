@@ -10,7 +10,7 @@ const BACKGROUND = '#0b1a12';
 const GRID_LINE = '#12281c';
 const COLOURS = { 1: '#42a5f5', 2: '#ff9800' } as const;
 
-export function drawGame(ctx: CanvasRenderingContext2D, state: GameState): void {
+export function drawGame(ctx: CanvasRenderingContext2D, state: GameState, opts: { hit?: Record<1 | 2, boolean> } = {}): void {
   ctx.fillStyle = BACKGROUND;
   ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
   ctx.strokeStyle = GRID_LINE;
@@ -61,6 +61,15 @@ export function drawGame(ctx: CanvasRenderingContext2D, state: GameState): void 
     ctx.fillStyle = COLOURS[snake.player];
     snake.segments.forEach((p, i) => {
       ctx.fillRect(p.x * CELL_PX + 2, p.y * CELL_PX + 2, CELL_PX - 4, CELL_PX - 4);
+      if (i > 0 && i % 2 === 0) {
+        // Body pattern: P1 gets a centre dot, P2 a horizontal bar, so snakes differ without colour.
+        ctx.fillStyle = '#000000';
+        const cx = p.x * CELL_PX + CELL_PX / 2;
+        const cy = p.y * CELL_PX + CELL_PX / 2;
+        if (snake.player === 1) ctx.fillRect(cx - 3, cy - 3, 6, 6);
+        else ctx.fillRect(cx - 8, cy - 2, 16, 4);
+        ctx.fillStyle = COLOURS[snake.player];
+      }
       if (i === 0) {
         // The head gets a white border and the player number, so colour is not the only cue.
         ctx.strokeStyle = '#ffffff';
@@ -68,6 +77,12 @@ export function drawGame(ctx: CanvasRenderingContext2D, state: GameState): void 
         ctx.strokeRect(p.x * CELL_PX + 2, p.y * CELL_PX + 2, CELL_PX - 4, CELL_PX - 4);
       }
     });
+    if (opts.hit?.[snake.player]) {
+      // A steady outline around the affected snake only; it needs no motion, so it stays under reduced motion.
+      ctx.strokeStyle = '#ff1744';
+      ctx.lineWidth = 3;
+      for (const p of snake.segments) ctx.strokeRect(p.x * CELL_PX + 0.5, p.y * CELL_PX + 0.5, CELL_PX - 1, CELL_PX - 1);
+    }
     const head = snake.segments[0];
     ctx.fillStyle = '#000000';
     ctx.font = 'bold ' + CELL_PX * 0.6 + 'px system-ui, sans-serif';

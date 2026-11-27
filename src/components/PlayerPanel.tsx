@@ -11,6 +11,7 @@ export function PlayerPanel({
   unlimitedLives,
   eliminated,
   feedback,
+  feedbackKind,
 }: {
   player: PlayerId;
   name: string;
@@ -21,9 +22,10 @@ export function PlayerPanel({
   unlimitedLives?: boolean;
   eliminated: boolean;
   feedback: string;
+  feedbackKind?: "correct" | "incorrect" | "collision" | "";
 }) {
   return (
-    <div className={"question-panel name-p" + player} role="group" aria-label={`Player ${player}: ${name}`}>
+    <div className={"question-panel name-p" + player} data-feedback={feedbackKind || undefined} role="group" aria-label={`Player ${player}: ${name}`}>
       <span className="player-name" title={name}>{name}</span>
       <span className="question-text" title={question}>
         <span className="stat-label">Question: </span>
