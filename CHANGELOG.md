@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Canvas game screen with countdown, fixed-rate loop and keyboard controls. See `docs/game-screen.md`. (#14)
 - Game setup screen with names, per-player difficulty and topics, validation and a placeholder game screen. See `docs/game-setup.md`. (#13)
 - Main menu with Play, Instructions and Settings screens replacing the starter page. (#12)
 - Combined the maths question code from tasks #8 and #9, which were built side by side and merged into each other's files. `generateQuestion` now serves the arithmetic topics plus percentages and mixed operations.

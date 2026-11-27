@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import type { GameSettings } from "@/lib/settings/types";
-import { GamePlaceholder } from "./GamePlaceholder";
+import { GameScreen } from "./GameScreen";
 import { GameSetup } from "./GameSetup";
 import { Instructions } from "./Instructions";
 import { ScreenHeading } from "./ScreenHeading";
@@ -31,7 +31,7 @@ export function MainMenu() {
       />
     );
   }
-  if (screen === "game" && settings) return <GamePlaceholder settings={settings} onBack={back} />;
+  if (screen === "game" && settings) return <GameScreen settings={settings} onBack={back} />;
   if (screen === "instructions") return <Instructions onBack={back} />;
   if (screen === "settings") return <SettingsScreen onBack={back} />;
 
