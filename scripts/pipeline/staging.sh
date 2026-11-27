@@ -35,6 +35,8 @@ fail() { # reason [log]
   git_push_setup "pipeline-bot"
   git fetch -q origin main
   git checkout -q -B "revert/$short" origin/main
+  # Tells the dispatcher a retry of this task must start again rather than just re-check staging.
+  comment "$n" "↩️ Reverting ${short} because it failed on staging. <!-- reverted:$sha -->"
   if ! git revert --no-edit "$sha"; then
     stall "$n" "failed on staging ($1) and the automatic revert of ${short} hit a conflict. Please revert it by hand." "${2:-}"
     exit 1
@@ -62,7 +64,10 @@ if [[ $state != success ]]; then fail "the Vercel build of ${sha:0:7} ended in '
 
 target=${STAGING_URL:-$url}
 echo "Smoke-testing $target"
-if ! STAGING_URL=$target npx playwright test --project=smoke > "$RUNNER_TEMP/smoke.log" 2>&1; then
+smoke() { STAGING_URL=$target npx playwright test --project=smoke > "$RUNNER_TEMP/smoke.log" 2>&1; }
+# A failure here reverts the task and pays to build it again, so give a slow or still-switching deployment
+# one more chance a minute later first.
+if ! smoke && { cat "$RUNNER_TEMP/smoke.log"; echo "Smoke tests failed; trying once more in 60 seconds."; sleep 60; ! smoke; }; then
   cat "$RUNNER_TEMP/smoke.log"
   fail "the smoke tests failed on $target" "$(tail -40 "$RUNNER_TEMP/smoke.log" | sed 's/```/` ` `/g')"
 fi
@@ -77,5 +82,9 @@ if [[ -n $n ]]; then
   remove_labels "$n" in-progress stalled "stage:staging"
   add_labels "$n" done
   gh issue close "$n" --comment "🚀 Live on staging ($target) and the smoke tests passed. Task done. Total spend: \$$(task_cost "$n")." >/dev/null
+  left=$(for l in queued in-progress stalled; do gh issue list --label "$l" --state open --json number -q '.[].number'; done)
+  if [[ -z $left ]]; then
+    alert "🎉 Task #$n was the last one: every planned task is done and live on staging ($target). This month's AI spend so far: \$$(month_spend)."
+  fi
 fi
 dispatch dispatcher.yml main ""

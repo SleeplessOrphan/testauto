@@ -13,8 +13,27 @@ if [[ -n $revert ]]; then log "revert PR #$revert is still open"; exit 0; fi
 
 # Strictly in order: while any task is stalled, nothing new starts, so later tasks never build on top of
 # a task that hasn't merged. Retrying the stalled task (or closing it) lets the queue carry on.
-stuck=$(gh issue list --label stalled --state open --json number -q 'sort_by(.number) | .[0].number // empty')
+# A stalled task that already has `queued` again is being retried, so it doesn't block (whichever order the
+# two labels were changed in).
+stuck=$(gh issue list --label stalled --state open --json number,labels \
+  -q '[.[] | select([.labels[].name] | index("queued") | not)] | sort_by(.number) | .[0].number // empty')
 if [[ -n $stuck ]]; then log "task #$stuck is stalled; the queue waits for it"; exit 0; fi
+
+# Monthly AI budget: once this month's recorded spend reaches limits.monthly_usd, open a pause issue
+# (the normal kill switch) and stop. Closing that issue means "carry on anyway this month".
+month=$(date -u +%Y-%m)
+spent=$(month_spend)
+cap=$(cfg '.limits.monthly_usd // 0')
+if awk -v s="$spent" -v c="$cap" 'BEGIN {exit !(c > 0 && s >= c)}'; then
+  pauses=$(gh issue list --label pause --state all --limit 100 --json body -q '.[].body')
+  if ! grep -qF "<!-- budget-month:$month -->" <<<"$pauses"; then
+    gh issue create --title "Paused: monthly AI budget reached" --label pause \
+      --body "This month's recorded AI spend is \$$spent, which reached the \$$cap monthly limit in models.yaml. No new task starts while this issue is open. Close it to carry on anyway this month.
+<!-- budget-month:$month -->" >/dev/null
+    alert "Paused: this month's AI spend is \$$spent (limit \$$cap). Close the pause issue to carry on anyway."
+    exit 0
+  fi
+fi
 
 n=$(gh issue list --label queued --state open --limit 300 --json number -q 'sort_by(.number) | .[0].number // empty')
 if [[ -z $n ]]; then log "no queued tasks"; exit 0; fi
@@ -27,6 +46,16 @@ restart=false
 if labels_of "$n" | grep -qx restart; then restart=true; fi
 remove_labels "$n" queued stalled done restart
 add_labels "$n" in-progress
+
+# Already merged but staging didn't confirm it (for example Vercel never reported a deploy): the code is on
+# main, so redoing the task would find nothing to change. Check staging again instead.
+merged=$(last_marker "$n" merged)
+if [[ $restart == false && -n $merged && $merged != "$(last_marker "$n" reverted)" ]]; then
+  comment "$n" "⏯️ Resumed: ${merged:0:7} is already merged, so only the staging check runs again. <!-- resume-round:$(last_round "$n") -->"
+  set_stage "$n" staging
+  dispatch staging.yml main "$n" "sha=$merged" "issue=$n" "mode=task"
+  exit 0
+fi
 
 lock=$(last_marker "$n" tests-lock)
 if [[ $restart == false && -n $lock ]] && gh api "repos/$GH_REPO/branches/task/$n" >/dev/null 2>&1; then

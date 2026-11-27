@@ -10,13 +10,17 @@ run_url="$GITHUB_SERVER_URL/$GH_REPO/actions/runs/$GITHUB_RUN_ID"
 
 # merge runs inside $(...), a subshell, so its error goes through a file to reach the stall message.
 merge_error="" merge_log="$RUNNER_TEMP/merge-error.txt"
+# GitHub sometimes refuses a merge for a few seconds after the statuses are posted or main moves ("base
+# branch was modified", checks not registered yet), so try three times before giving up.
 merge() {
-  local sha
-  sha=$(gh pr view "$pr" --json headRefOid -q .headRefOid)
-  if ! gh pr merge "$pr" --squash --delete-branch --match-head-commit "$sha" >"$merge_log" 2>&1; then
+  local sha try
+  for try in 1 2 3; do
+    sha=$(gh pr view "$pr" --json headRefOid -q .headRefOid)
+    if gh pr merge "$pr" --squash --delete-branch --match-head-commit "$sha" >"$merge_log" 2>&1; then break; fi
     cat "$merge_log" >&2
-    return 1
-  fi
+    if grep -qiE 'conflict|not mergeable' "$merge_log" || (( try == 3 )); then return 1; fi
+    sleep 20
+  done
   sleep 5
   gh pr view "$pr" --json mergeCommit -q .mergeCommit.oid
 }
@@ -25,7 +29,11 @@ merge() {
 # Merge main into the task branch (CHANGELOG.md lines from both sides are kept, see .gitattributes) and
 # send it round CI and review again. Only once per attempt, and only when git can merge cleanly.
 catch_up_with_main() {
-  [[ $(gh api "repos/$GH_REPO/pulls/$pr" --jq .mergeable_state) =~ ^(dirty|behind)$ ]] || return 1
+  local state
+  state=$(gh api "repos/$GH_REPO/pulls/$pr" --jq .mergeable_state)
+  # GitHub works the state out lazily, so the first answer can be "unknown".
+  if [[ $state == unknown ]]; then sleep 10; state=$(gh api "repos/$GH_REPO/pulls/$pr" --jq .mergeable_state); fi
+  [[ $state =~ ^(dirty|behind)$ ]] || return 1
   [[ -z $(markers "$n" caught-up) ]] || return 1
   git_push_setup "pipeline-bot"
   git fetch -q origin main "$branch"
@@ -65,7 +73,8 @@ fi
 case $verdict in
   approve)
     if sha=$(merge); then
-      comment "$n" "🔀 Merged #$pr as ${sha:0:7}. Next: deploy to staging and run the smoke tests."
+      comment "$n" "🔀 Merged #$pr as ${sha:0:7}. Next: deploy to staging and run the smoke tests.
+<!-- merged:$sha -->"
       set_stage "$n" staging
       dispatch staging.yml main "$n" "sha=$sha" "issue=$n" "mode=task"
     elif merge_error=$(head -1 "$merge_log" 2>/dev/null); catch_up_with_main; then
