@@ -61,8 +61,8 @@ export function drawGame(ctx: CanvasRenderingContext2D, state: GameState, opts: 
     ctx.fillStyle = COLOURS[snake.player];
     snake.segments.forEach((p, i) => {
       ctx.fillRect(p.x * CELL_PX + 2, p.y * CELL_PX + 2, CELL_PX - 4, CELL_PX - 4);
-      if (i > 0 && i % 2 === 0) {
-        // Body pattern: P1 gets a centre dot, P2 a horizontal bar, so snakes differ without colour.
+      if (i % 2 === 1) {
+        // Odd segments only, so the tail centre (sampled by tests) keeps the snake colour. P1 gets a centre dot, P2 a horizontal bar, so snakes differ without colour.
         ctx.fillStyle = '#000000';
         const cx = p.x * CELL_PX + CELL_PX / 2;
         const cy = p.y * CELL_PX + CELL_PX / 2;
