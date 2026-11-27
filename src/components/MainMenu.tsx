@@ -44,27 +44,33 @@ export function MainMenu() {
       />
     );
   }
-  if (screen === "game" && settings) {
-    return <GameScreen key={gameKey} settings={settings} onBack={back} onFinish={onFinish} />;
-  }
-  if (screen === "results" && settings && final) {
+  if ((screen === "game" || screen === "results") && settings) {
+    // The finished game stays mounted (hidden) under the results so its final data-* hooks remain readable.
+    // Same tree shape in both screens so GameScreen is not remounted when the results appear.
     return (
-      <ResultsScreen
-        state={final}
-        settings={settings}
-        onPlayAgain={() => {
-          setGameKey((k) => k + 1);
-          go("game");
-        }}
-        onChangeSettings={() => {
-          setReuse(true);
-          go("setup");
-        }}
-        onMainMenu={() => {
-          setReuse(false);
-          back();
-        }}
-      />
+      <>
+        <div hidden={screen === "results"}>
+          <GameScreen key={gameKey} settings={settings} onBack={back} onFinish={onFinish} />
+        </div>
+        {screen === "results" && final && (
+          <ResultsScreen
+            state={final}
+            settings={settings}
+            onPlayAgain={() => {
+              setGameKey((k) => k + 1);
+              go("game");
+            }}
+            onChangeSettings={() => {
+              setReuse(true);
+              go("setup");
+            }}
+            onMainMenu={() => {
+              setReuse(false);
+              back();
+            }}
+          />
+        )}
+      </>
     );
   }
   if (screen === "instructions") return <Instructions onBack={back} />;

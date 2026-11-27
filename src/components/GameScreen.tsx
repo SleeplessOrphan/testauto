@@ -57,13 +57,6 @@ function startRound(settings: GameSettings, seed: number | null) {
 /** How long the correct answer / praise stays in a player's feedback area. */
 const FEEDBACK_MS = 2000;
 
-const outcomeText = (end: ReturnType<typeof checkGameEnd>, s: GameSettings) =>
-  end.outcome === "win" && end.winner
-    ? `${s.players[end.winner - 1].name} wins!`
-    : end.outcome === "draw"
-      ? "It's a draw!"
-      : "Game over";
-
 const pt =(p: { x: number; y: number }) => p.x + "," + p.y;
 
 export function GameScreen({ settings, onBack, onFinish }: { settings: GameSettings; onBack: () => void; onFinish: (state: GameState) => void }) {
@@ -263,8 +256,6 @@ export function GameScreen({ settings, onBack, onFinish }: { settings: GameSetti
             aria-label="Game board"
           />
           <Countdown value={count} />
-          {ended && <p role="status" className="round-over">{outcomeText(checkGameEnd(state, mode), settings)}</p>}
-          {!ended && state.status === "ended" && <p role="status" className="round-over">Round over</p>}
         </div>
       </div>
       <button type="button" onClick={onBack}>Back to menu</button>
