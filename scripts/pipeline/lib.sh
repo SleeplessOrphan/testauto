@@ -23,7 +23,7 @@ label_color() {
 
 ensure_labels() {
   local l
-  for l in task queued in-progress stalled done pause alerts stage:tests stage:code stage:ci stage:review stage:staging; do
+  for l in task queued in-progress stalled done pause alerts restart stage:tests stage:code stage:ci stage:review stage:staging; do
     gh label create "$l" --force --color "$(label_color "$l")" >/dev/null 2>&1 || true
   done
 }
@@ -76,6 +76,16 @@ task_cost() { markers "$1" cost | awk '{s+=$1} END {printf "%.2f", s+0}'; }
 
 over_budget() { awk -v c="$(task_cost "$1")" -v cap="$(cfg .limits.per_task_usd)" 'BEGIN {exit !(c >= cap)}'; }
 
+# Every bot comment on the issue, ignoring attempts.
+all_markers() {
+  gh api "repos/$GH_REPO/issues/$1/comments" --paginate --jq ".[] | select(.user.login==\"$BOT\") | .body" |
+    grep -oP "<!-- $2:\K[^ ]+(?= -->)" || true
+}
+
+# Fingerprint of the task's own changes: the diff from where the branch meets main to HEAD. Merging main
+# into the branch leaves it unchanged, so an approval survives that.
+change_hash() { git diff "$(git merge-base origin/main HEAD)" HEAD | sha256sum | cut -c1-16; }
+
 last_round() { last_marker "$1" coder-round || true; }
 
 # Cost of one claude-code-action run, read from its execution file.
@@ -126,6 +136,9 @@ dispatch() { # workflow ref issue-or-empty key=value...
     log "paused: not starting $wf"
     return 0
   fi
+  # CI and review always run from main's workflow files, so a task branch made before a pipeline change can't
+  # run with outdated settings or permissions; the branch to check is passed as an input instead.
+  if [[ $wf =~ ^(ci|adversary-review)\.yml$ && $ref != main ]]; then args+=(-f "branch=$ref"); ref=main; fi
   gh workflow run "$wf" --ref "$ref" "${args[@]}"
   log "started $wf on $ref $*"
 }
@@ -138,7 +151,7 @@ stall() { # issue reason [log-lines]
   if [[ -n $details ]]; then
     body+=$'\n\n<details><summary>Last log lines</summary>\n\n```\n'"$details"$'\n```\n</details>'
   fi
-  body+=$'\n\nTo retry from scratch, remove the `stalled` label and add `queued`.'
+  body+=$'\n\nTo retry, remove the `stalled` label and add `queued`: it picks up where it stopped. To start over from scratch, also add `restart`.'
   comment "$n" "$body"
   alert "Task #$n stalled: $reason"
   dispatch dispatcher.yml main ""

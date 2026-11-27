@@ -52,6 +52,26 @@ if [[ $phase == prepare ]]; then
       cp "$KIT/prompts/adversary-review.md" .pipeline/instructions.md
       git fetch -q origin main
       git diff "$(git merge-base origin/main HEAD)" HEAD > .pipeline/diff.patch
+      change_hash > .pipeline/change-hash
+      # Don't pay for a second review of changes the adversary already approved (for example after
+      # main was merged into the branch, or when a stalled task is resumed).
+      reuse=""
+      if all_markers "$n" approved-changes | grep -qx "$(cat .pipeline/change-hash)"; then
+        reuse="the task's changes are identical to ones it already approved"
+      else
+        # Approvals recorded before change fingerprints existed: accept one made after the latest commit.
+        head_time=$(git log -1 --format=%cI HEAD)
+        approved_at=$(gh api "repos/$GH_REPO/issues/$n/comments" --paginate \
+          --jq ".[] | select(.user.login==\"$BOT\" and (.body | test(\"^🔍 Review of #${PR:-x}: .approve.\"))) | .created_at" | tail -1)
+        if [[ -n $approved_at ]] && (( $(date -d "$approved_at" +%s) > $(date -d "$head_time" +%s) )); then
+          reuse="it approved this exact commit at $approved_at"
+        fi
+      fi
+      if [[ -n $reuse ]]; then
+        jq -n --arg s "Reused the adversary's earlier approval: $reuse. No new review was run." \
+          '{verdict: "approve", summary: $s, findings: []}' > .pipeline/verdict.json
+        out "reuse=true"
+      fi
       ;;
   esac
   out "skip=false"
@@ -166,9 +186,11 @@ $summary"
     comment "$pr" "$body"
     lock=""
     if [[ $added_tests == true ]]; then lock="<!-- tests-lock:$(tests_lock) -->"; fi
+    approved=""
+    if [[ $verdict == approve ]]; then approved="<!-- approved-changes:$(cat .pipeline/change-hash) -->"; fi
     comment "$n" "🔍 Review of #$pr: \`$verdict\` (\$$cost).
 <!-- cost:$cost -->
-$lock"
+$lock$approved"
     if [[ $verdict != approve ]]; then
       comment "$n" "**Feedback for the coder** (adversary review of ${sha_reviewed:0:7}):
 

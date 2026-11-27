@@ -40,7 +40,7 @@ fail() { # reason [log]
     --body "Automatic revert: $1. [Run]($run_url)
 <!-- revert-of:$sha -->")
   stall "$n" "merged as ${short} but failed on staging ($1). Revert PR #${pr_url##*/} is on its way in." "${2:-}"
-  gh workflow run ci.yml --ref "revert/$short" -f "issue=$n"
+  gh workflow run ci.yml --ref main -f "branch=revert/$short" -f "issue=$n"
   exit 1
 }
 

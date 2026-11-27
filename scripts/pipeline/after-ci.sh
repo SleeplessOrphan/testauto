@@ -11,12 +11,13 @@ n=${ISSUE:-}
 run_url="$GITHUB_SERVER_URL/$GH_REPO/actions/runs/$GITHUB_RUN_ID"
 pr=$(pr_for_branch "$branch")
 
+RESULTS=$(jq -c 'del(.head)' <<<"$RESULTS")  # `head` only finds the commit; it is not a check
 failed=$(jq -r 'to_entries[] | select(.value.result != "success") | .key' <<<"$RESULTS" | sort)
 
 # Report every check's result as a commit status on the commit CI tested (see report_status in lib.sh).
 while IFS=$'\t' read -r job result; do
   [[ $result == success ]] && st=success || st=failure
-  report_status "$GITHUB_SHA" "$job" "$st" "$result"
+  report_status "${SHA:-$GITHUB_SHA}" "$job" "$st" "$result"
 done < <(jq -r 'to_entries[] | [.key, .value.result] | @tsv' <<<"$RESULTS")
 
 if [[ $branch == revert/* ]]; then

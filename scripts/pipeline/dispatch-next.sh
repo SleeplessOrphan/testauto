@@ -13,8 +13,30 @@ if [[ -n $revert ]]; then log "revert PR #$revert is still open"; exit 0; fi
 n=$(gh issue list --label queued --state open --limit 300 --json number -q 'sort_by(.number) | .[0].number // empty')
 if [[ -z $n ]]; then log "no queued tasks"; exit 0; fi
 
-remove_labels "$n" queued stalled done
+# Resume where the last attempt stopped instead of paying for the AI stages again, unless the issue has the
+# `restart` label. Tests exist (a test lock was recorded) and the branch is still there:
+#   with an open PR  -> run CI on it again (free); the review reuses an approval if the changes are unchanged
+#   without a PR     -> next coder round
+restart=false
+if labels_of "$n" | grep -qx restart; then restart=true; fi
+remove_labels "$n" queued stalled done restart
 add_labels "$n" in-progress
+
+lock=$(last_marker "$n" tests-lock)
+if [[ $restart == false && -n $lock ]] && gh api "repos/$GH_REPO/branches/task/$n" >/dev/null 2>&1; then
+  pr=$(pr_for_branch "task/$n")
+  if [[ -n $pr ]]; then
+    comment "$n" "⏯️ Resumed with the existing tests and code in #$pr. Next: CI runs again; the adversary's approval is reused if the code hasn't changed."
+    set_stage "$n" ci
+    dispatch ci.yml "task/$n" "$n" "issue=$n"
+  else
+    r=$(last_round "$n"); r=${r:-0}
+    comment "$n" "⏯️ Resumed with the adversary's existing tests. Next: coder round $((r + 1))."
+    set_stage "$n" code
+    dispatch coder.yml main "$n" "issue=$n" "round=$((r + 1))"
+  fi
+  exit 0
+fi
 
 # Start the attempt clean: close any PR left over from an earlier attempt and reset the branch to main.
 for pr in $(gh pr list --head "task/$n" --state open --json number -q '.[].number'); do

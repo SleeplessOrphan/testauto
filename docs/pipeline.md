@@ -23,7 +23,7 @@ Each task is a GitHub issue. Its labels show where it is: `queued`, then `in-pro
 | `stage:staging` | `staging.yml` | Waits for Vercel to deploy the merge, runs `tests/smoke` against it. Pass closes the task. Fail opens a revert PR, which is checked and merged automatically. | dispatcher |
 
 Workflows start each other with `workflow_dispatch`. That is deliberate: actions taken with the built-in
-`GITHUB_TOKEN` (pushes, PRs, merges) do not trigger other workflows, so each step starts the next one explicitly.
+`GITHUB_TOKEN` (pushes, PRs, merges) do not trigger other workflows, so each step starts the next one explicitly. `ci` and `adversary-review` are always started on main and told which branch to check, so they run with main's current settings even on a task branch made before a pipeline change.
 
 ## The guardrails
 
@@ -47,6 +47,7 @@ A stalled task gets the `stalled` label, a comment with the reason, and a mentio
 
 - **Prompt caching** is on by default in Claude Code, so text an agent re-reads within a run costs about 90% less.
 - **`CLAUDE.md`** is a one-page map of the project. Every agent reads it first instead of searching the repo, and the coder keeps it current.
+- **No paid re-reviews.** When the adversary approves, the pipeline records a fingerprint of the task's changes. If the same changes come back for review (after main is merged into the branch, or when a stalled task is retried), the approval is reused instead of paying for a new review.
 - **Saved plans.** The planner saves each plan on the closed **Planner output** issue, keyed by a fingerprint of `spec/`. If a run fails after planning, run **planner** again from the Actions tab and it reuses the saved plan for free. A spec that has already become tasks is never planned twice.
 - **Cached installs.** npm packages and the Playwright browser are cached between runs, which saves Actions minutes.
 
@@ -54,7 +55,7 @@ A stalled task gets the `stalled` label, a comment with the reason, and a mentio
 
 - **Pause everything:** open an issue (any title, e.g. "Pause") and add the label `pause`. Running steps finish and then wait. Close the issue to resume from where it stopped.
 - **Add a task by hand:** open an issue describing it with acceptance criteria and add the label `task`.
-- **Retry a stalled task:** remove `stalled` and add `queued`. It starts again from scratch on a fresh branch.
+- **Retry a stalled task:** remove `stalled` and add `queued`. It picks up where it stopped: if the tests and a PR exist, only CI runs again (no AI cost), and the adversary's approval is reused when the code hasn't changed. To start over from scratch on a fresh branch, also add `restart`.
 - **Change a model or limit:** edit `models.yaml` in your own pull request.
 
 ## Why the checks are also commit statuses

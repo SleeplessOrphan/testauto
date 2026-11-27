@@ -19,6 +19,8 @@
 - Extra pull_request runs that GitHub opens on agent PRs now skip, so approving one by hand can't block the merge.
 
 ### Fixed (pipeline)
+- The commit statuses from the last fix were never posted on older task branches: dispatched runs used the branch's outdated workflow file, which had no permission to post them. `ci` and `adversary-review` now always run from main's workflow files and take the branch to check as an input.
+- Retrying a stalled task picks up where it stopped instead of paying for every AI stage again, and an adversary approval is reused when the task's changes are unchanged. Add the `restart` label to start over.
 - Agent PRs still couldn't merge: GitHub ignores check runs from `workflow_dispatch` runs for required checks. The pipeline now also reports each check result and the adversary's verdict as commit statuses, which count.
 - If the System alerts issue was closed, the pipeline opened a new one. It now keeps using the old one.
 - Agent PRs could never merge: GitHub held the duplicate pull_request runs for approval, and a held run blocks the merge. `ci` and `adversary-review` now run on pushes instead of pull_request.

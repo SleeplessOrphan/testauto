@@ -1,5 +1,5 @@
 name: adversary-review
-run-name: "adversary-review ${{ github.ref_name }} #${{ inputs.issue }}"
+run-name: "adversary-review ${{ inputs.branch || github.ref_name }} #${{ inputs.issue }}"
 # Stage 4 of a task: the adversary attacks the finished change. Its verdict is the required
 # `adversary-verdict` check. On approval this workflow merges the PR and starts the staging deploy.
 on:
@@ -7,6 +7,7 @@ on:
     inputs:
       issue: { description: Task issue number, required: false, default: "" }
       pr: { description: Pull request number, required: false, default: "" }
+      branch: { description: "Agent branch to review (set by the pipeline; the workflow itself runs from main)", required: false, default: "" }
   # Pushes to your own branches: the check passes so your pull requests can merge. No pull_request
   # trigger, because GitHub holds those runs on the pipeline's PRs and a held run blocks the merge.
   push:
@@ -20,7 +21,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: review-${{ github.ref }}
+  group: review-${{ inputs.branch || github.ref }}
   cancel-in-progress: false
 
 env:
@@ -33,6 +34,7 @@ jobs:
     outputs:
       verdict: ${{ steps.owner.outputs.verdict || steps.revert.outputs.verdict || steps.finish.outputs.verdict }}
       reason: ${{ steps.finish.outputs.reason }}
+      sha: ${{ steps.head.outputs.sha }}
     env:
       ISSUE: ${{ inputs.issue }}
       PR: ${{ inputs.pr }}
@@ -51,7 +53,10 @@ jobs:
 
       - uses: actions/checkout@v4
         if: github.event_name == 'workflow_dispatch'
-        with: { fetch-depth: 0, persist-credentials: false }
+        with: { ref: "${{ inputs.branch }}", fetch-depth: 0, persist-credentials: false }
+      - id: head
+        if: github.event_name == 'workflow_dispatch'
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - name: Copy the pipeline kit from main, out of the agent's reach
         if: github.event_name == 'workflow_dispatch'
         run: |
@@ -61,30 +66,30 @@ jobs:
 
       # Automatic reverts are checked mechanically: the PR must be exactly `git revert` of one commit.
       - id: revert
-        if: github.event_name == 'workflow_dispatch' && startsWith(github.ref_name, 'revert/')
+        if: github.event_name == 'workflow_dispatch' && startsWith(inputs.branch, 'revert/')
         env: { GH_TOKEN: "${{ github.token }}" }
         run: bash "$RUNNER_TEMP/kit/scripts/pipeline/verify-revert.sh"
 
       - uses: actions/setup-node@v4
-        if: github.event_name == 'workflow_dispatch' && startsWith(github.ref_name, 'task/')
+        if: github.event_name == 'workflow_dispatch' && startsWith(inputs.branch, 'task/')
         with: { node-version: 22, cache: npm }
       - name: Install packages
-        if: github.event_name == 'workflow_dispatch' && startsWith(github.ref_name, 'task/')
+        if: github.event_name == 'workflow_dispatch' && startsWith(inputs.branch, 'task/')
         run: npm ci
       - uses: ./.github/actions/setup-playwright
-        if: github.event_name == 'workflow_dispatch' && startsWith(github.ref_name, 'task/')
+        if: github.event_name == 'workflow_dispatch' && startsWith(inputs.branch, 'task/')
       - name: Start the app
-        if: github.event_name == 'workflow_dispatch' && startsWith(github.ref_name, 'task/')
+        if: github.event_name == 'workflow_dispatch' && startsWith(inputs.branch, 'task/')
         run: |
           npx next build
           nohup npx next start -p 3000 > "$RUNNER_TEMP/app.log" 2>&1 &
           npx --yes wait-on@8 -t 60000 http://localhost:3000
       - id: prep
-        if: github.event_name == 'workflow_dispatch' && startsWith(github.ref_name, 'task/')
+        if: github.event_name == 'workflow_dispatch' && startsWith(inputs.branch, 'task/')
         env: { GH_TOKEN: "${{ github.token }}" }
         run: bash "$RUNNER_TEMP/kit/scripts/pipeline/agent.sh" review prepare
       - id: claude
-        if: steps.prep.outcome == 'success' && steps.prep.outputs.skip != 'true'
+        if: steps.prep.outcome == 'success' && steps.prep.outputs.skip != 'true' && steps.prep.outputs.reuse != 'true'
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -139,7 +144,8 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       ISSUE: ${{ inputs.issue }}
       PR: ${{ inputs.pr }}
-      BRANCH: ${{ github.ref_name }}
+      BRANCH: ${{ inputs.branch }}
+      SHA: ${{ needs.adversary-verdict.outputs.sha }}
       VERDICT: ${{ needs.adversary-verdict.outputs.verdict }}
       REASON: ${{ needs.adversary-verdict.outputs.reason }}
       JOB_RESULT: ${{ needs.adversary-verdict.result }}
