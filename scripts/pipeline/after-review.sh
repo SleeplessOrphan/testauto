@@ -56,7 +56,7 @@ fi
 if [[ $branch == revert/* ]]; then
   if [[ $verdict == approve ]] && sha=$(merge); then
     alert "↩️ Reverted: PR #$pr undid a change that failed on staging (task #$n). Checking staging again."
-    dispatch staging.yml main "" "sha=$sha" "issue=$n" "mode=revert"
+    dispatch staging.yml "$PIPELINE_REF" "" "sha=$sha" "issue=$n" "mode=revert"
   else
     alert "The automatic revert PR #$pr could not be merged. Main may be broken; please look. [Run]($run_url)"
   fi
@@ -76,7 +76,7 @@ case $verdict in
       comment "$n" "🔀 Merged #$pr as ${sha:0:7}. Next: deploy to staging and run the smoke tests.
 <!-- merged:$sha -->"
       set_stage "$n" staging
-      dispatch staging.yml main "$n" "sha=$sha" "issue=$n" "mode=task"
+      dispatch staging.yml "$PIPELINE_REF" "$n" "sha=$sha" "issue=$n" "mode=task"
     elif merge_error=$(head -1 "$merge_log" 2>/dev/null); catch_up_with_main; then
       comment "$n" "🔄 Main moved while #$pr was in progress. Merged main into \`$branch\`; CI and review run again on the result.
 <!-- caught-up:1 -->"
@@ -92,6 +92,6 @@ case $verdict in
   *)
     r=$(last_round "$n"); r=${r:-1}
     set_stage "$n" code
-    dispatch coder.yml main "$n" "issue=$n" "round=$((r + 1))"
+    dispatch coder.yml "$PIPELINE_REF" "$n" "issue=$n" "round=$((r + 1))"
     ;;
 esac

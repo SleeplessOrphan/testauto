@@ -53,7 +53,7 @@ merged=$(last_marker "$n" merged)
 if [[ $restart == false && -n $merged && $merged != "$(last_marker "$n" reverted)" ]]; then
   comment "$n" "⏯️ Resumed: ${merged:0:7} is already merged, so only the staging check runs again. <!-- resume-round:$(last_round "$n") -->"
   set_stage "$n" staging
-  dispatch staging.yml main "$n" "sha=$merged" "issue=$n" "mode=task"
+  dispatch staging.yml "$PIPELINE_REF" "$n" "sha=$merged" "issue=$n" "mode=task"
   exit 0
 fi
 
@@ -69,7 +69,7 @@ if [[ $restart == false && -n $lock ]] && gh api "repos/$GH_REPO/branches/task/$
   else
     comment "$n" "⏯️ Resumed with the adversary's existing tests. Next: coder round $((r + 1)). <!-- resume-round:$r -->"
     set_stage "$n" code
-    dispatch coder.yml main "$n" "issue=$n" "round=$((r + 1))"
+    dispatch coder.yml "$PIPELINE_REF" "$n" "issue=$n" "round=$((r + 1))"
   fi
   exit 0
 fi
@@ -79,9 +79,11 @@ for pr in $(gh pr list --head "task/$n" --state open --json number -q '.[].numbe
   gh pr close "$pr" --comment "Closed: task #$n is starting over from main." >/dev/null
 done
 git_push_setup "pipeline-bot"
-git push -f origin "HEAD:refs/heads/task/$n"
+# The task branch starts from main's app code, whichever branch this pipeline runs from.
+git fetch -q origin main
+git push -f origin "$(git rev-parse FETCH_HEAD):refs/heads/task/$n"
 
 comment "$n" "▶️ Started on branch \`task/$n\`. Next: the adversary writes failing tests from the acceptance criteria.
 <!-- attempt-start -->"
 set_stage "$n" tests
-dispatch adversary-tests.yml main "$n" "issue=$n"
+dispatch adversary-tests.yml "$PIPELINE_REF" "$n" "issue=$n"

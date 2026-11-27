@@ -43,5 +43,5 @@ done
 # Nothing running but work queued: kick the dispatcher (it no-ops if a task or revert is in flight).
 if [[ -z $(gh issue list --label in-progress --state open --json number -q '.[0].number // empty') &&
       -n $(gh issue list --label queued --state open --json number -q '.[0].number // empty') ]]; then
-  dispatch dispatcher.yml main ""
+  dispatch dispatcher.yml "$PIPELINE_REF" ""
 fi

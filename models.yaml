@@ -2,9 +2,17 @@
 # Changing a model is a one-line edit here. Agents cannot change this file:
 # the protected-files check refuses any task PR that touches it.
 #
-# Iteration one runs every role through anthropics/claude-code-action, so only
-# Anthropic models work today. The `provider` field is there so iteration two
-# can route other providers through a gateway without changing this layout.
+# `provider` picks the company and its coding tool (see docs/providers.md):
+#   anthropic  Claude Code (anthropics/claude-code-action), key secret ANTHROPIC_API_KEY
+#   openai     OpenAI Codex CLI,                             key secret OPENAI_API_KEY
+#   google     Gemini CLI,                                   key secret GOOGLE_API_KEY
+# Every role below is Anthropic, so nothing changes until you switch one. A role on
+# openai or google needs its model listed under `prices`, or the task stalls instead
+# of running with spend it can't count. `effort` works for anthropic and openai only.
+#
+# Example: put the reviewer on another company's model for an independent check:
+#   adversary_review: { provider: openai, model: gpt-6.2-sol,    max_turns: 40, effort: medium }
+#   adversary_review: { provider: google, model: gemini-4-argon, max_turns: 40 }
 
 #
 # `effort` (optional: low, medium, high, xhigh, max) is how hard the model thinks. Lower effort means fewer
@@ -24,6 +32,20 @@ limits:
   max_rounds: 3            # coder rounds on the normal model; one more round on the escalation model, then stall
   max_changed_lines: 300   # size-check, not counting tests/ and package-lock.json
   max_changed_files: 10
+
+# Prices for OpenAI and Google models, in US dollars per million tokens:
+# [input, cached input, output]. Claude reports its own cost, so Anthropic models
+# aren't listed. Checked 27 Nov 2026; providers change prices, so check the
+# provider's pricing page before relying on one. Where a price is about to rise,
+# the higher price is used.
+prices:
+  gpt-6.2-astra:          [8, 0.40, 40]       # OpenAI flagship
+  gpt-6.2-sol:            [2, 0.10, 10]       # OpenAI mid-price, a good reviewer
+  gpt-6-luna:             [0.10, 0.01, 0.50]  # OpenAI cheapest
+  gemini-4-argon:         [4, 0.20, 20]       # Google flagship ($2/$10 until 30 Nov 2026)
+  gemini-3.1-pro-preview: [2, 0.20, 12]       # prompts under 200k tokens
+  gemini-3.8-flash:       [1.50, 0.15, 7.50]  # Google fast ($0.75/$3.75 until 31 Dec 2026)
+  gemini-3.5-flash-lite:  [0.30, 0.03, 2.50]  # Google cheapest
 
 # The watchdog stalls a task that sits in one stage longer than this with no run going.
 stage_minutes:

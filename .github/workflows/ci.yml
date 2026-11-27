@@ -15,7 +15,7 @@ on:
         required: false
         default: ""
       branch:
-        description: Agent branch to test (set by the pipeline). The workflow itself always runs from main.
+        description: Agent branch to test (set by the pipeline). The workflow itself runs from the pipeline branch.
         required: false
         default: ""
 
@@ -129,12 +129,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { ref: "${{ needs.head.outputs.sha }}", fetch-depth: 0, persist-credentials: false }
-      - name: Use the guard scripts from main (agents can't change them on their branch)
+      - name: Use the guard scripts from the pipeline branch (agents can't change them on their branch)
         run: |
-          git fetch -q origin main
+          git fetch -q origin main "${{ github.ref_name }}"
           mkdir -p "$RUNNER_TEMP/kit"
-          if git cat-file -e origin/main:scripts/guards/docs-check.sh 2>/dev/null; then
-            git archive origin/main scripts models.yaml prompts | tar -x -C "$RUNNER_TEMP/kit"
+          if git cat-file -e "origin/${{ github.ref_name }}:scripts/guards/docs-check.sh" 2>/dev/null; then
+            git archive "origin/${{ github.ref_name }}" scripts models.yaml prompts | tar -x -C "$RUNNER_TEMP/kit"
           else
             cp -r scripts models.yaml prompts "$RUNNER_TEMP/kit/"
           fi
@@ -151,12 +151,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { ref: "${{ needs.head.outputs.sha }}", fetch-depth: 0, persist-credentials: false }
-      - name: Use the guard scripts from main (agents can't change them on their branch)
+      - name: Use the guard scripts from the pipeline branch (agents can't change them on their branch)
         run: |
-          git fetch -q origin main
+          git fetch -q origin main "${{ github.ref_name }}"
           mkdir -p "$RUNNER_TEMP/kit"
-          if git cat-file -e origin/main:scripts/guards/docs-check.sh 2>/dev/null; then
-            git archive origin/main scripts models.yaml prompts | tar -x -C "$RUNNER_TEMP/kit"
+          if git cat-file -e "origin/${{ github.ref_name }}:scripts/guards/docs-check.sh" 2>/dev/null; then
+            git archive "origin/${{ github.ref_name }}" scripts models.yaml prompts | tar -x -C "$RUNNER_TEMP/kit"
           else
             cp -r scripts models.yaml prompts "$RUNNER_TEMP/kit/"
           fi
@@ -173,12 +173,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { ref: "${{ needs.head.outputs.sha }}", fetch-depth: 0, persist-credentials: false }
-      - name: Use the guard scripts from main (agents can't change them on their branch)
+      - name: Use the guard scripts from the pipeline branch (agents can't change them on their branch)
         run: |
-          git fetch -q origin main
+          git fetch -q origin main "${{ github.ref_name }}"
           mkdir -p "$RUNNER_TEMP/kit"
-          if git cat-file -e origin/main:scripts/guards/docs-check.sh 2>/dev/null; then
-            git archive origin/main scripts models.yaml prompts | tar -x -C "$RUNNER_TEMP/kit"
+          if git cat-file -e "origin/${{ github.ref_name }}:scripts/guards/docs-check.sh" 2>/dev/null; then
+            git archive "origin/${{ github.ref_name }}" scripts models.yaml prompts | tar -x -C "$RUNNER_TEMP/kit"
           else
             cp -r scripts models.yaml prompts "$RUNNER_TEMP/kit/"
           fi
@@ -211,7 +211,7 @@ jobs:
       LOGS: ${{ github.workspace }}/logs
     steps:
       - uses: actions/checkout@v4
-        with: { ref: main, persist-credentials: false }
+        with: { ref: "${{ github.ref_name }}", persist-credentials: false }
       - uses: actions/download-artifact@v4
         continue-on-error: true
         with:

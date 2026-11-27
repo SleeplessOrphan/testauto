@@ -27,5 +27,5 @@ jobs:
       GH_REPO: ${{ github.repository }}
     steps:
       - uses: actions/checkout@v4
-        with: { ref: main, persist-credentials: false }
+        with: { ref: "${{ github.ref_name }}", persist-credentials: false }
       - run: bash scripts/pipeline/watchdog.sh

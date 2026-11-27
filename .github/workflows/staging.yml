@@ -33,13 +33,19 @@ jobs:
       STAGING_URL: ${{ vars.STAGING_URL }}
       CI: "true"
     steps:
+      # The app (and its smoke tests) come from main; the pipeline scripts from this workflow's branch.
       - uses: actions/checkout@v4
-        with: { ref: main, persist-credentials: false }
+        with: { ref: main, fetch-depth: 0, persist-credentials: false }
+      - name: Copy the pipeline kit from this workflow's branch
+        run: |
+          git fetch -q origin "${{ github.ref_name }}"
+          mkdir -p "$RUNNER_TEMP/kit"
+          git archive "origin/${{ github.ref_name }}" scripts models.yaml prompts | tar -x -C "$RUNNER_TEMP/kit"
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci
       - uses: ./.github/actions/setup-playwright
-      - run: bash scripts/pipeline/staging.sh
+      - run: bash "$RUNNER_TEMP/kit/scripts/pipeline/staging.sh"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

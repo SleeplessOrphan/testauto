@@ -14,4 +14,4 @@ for n in $(gh issue list --label in-progress --state open --json number -q '.[].
     dispatch "$wf" "$ref" "$n" "${kvs[@]}"
   fi
 done
-dispatch dispatcher.yml main ""
+dispatch dispatcher.yml "$PIPELINE_REF" ""

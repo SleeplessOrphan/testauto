@@ -114,4 +114,4 @@ $log_tail
 <!-- ci-sig:$sig -->
 <!-- feedback -->"
 set_stage "$n" code
-dispatch coder.yml main "$n" "issue=$n" "round=$next"
+dispatch coder.yml "$PIPELINE_REF" "$n" "issue=$n" "round=$next"
