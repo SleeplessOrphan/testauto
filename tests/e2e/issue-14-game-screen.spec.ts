@@ -172,9 +172,11 @@ test("tick rate is about 5 per second", async ({ page }) => {
   await waitRunning(page);
   const start = Date.now();
   const t0 = await tick(page);
-  await expect.poll(() => tick(page), { timeout: 5000 }).toBeGreaterThanOrEqual(t0 + 5);
+  // Sample after a fixed window so poll back-off delays do not skew the rate.
+  await expect.poll(() => Date.now() - start, { timeout: 5000 }).toBeGreaterThanOrEqual(2000);
+  const t1 = await tick(page);
   const elapsed = (Date.now() - start) / 1000;
-  const rate = ((await tick(page)) - t0) / elapsed;
+  const rate = (t1 - t0) / elapsed;
   expect(rate).toBeGreaterThan(3);
   expect(rate).toBeLessThan(7);
 });

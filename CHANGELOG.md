@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Pause menu (Escape, tab blur or hidden tab) with Resume (3-second countdown), Restart and Exit with confirmation, and End Game in Practice. (#24)
 - Player panel: full name and question are available as tooltips when clipped. (#23)
 - Live statistics panel: `PlayerPanel` is a named group with a labelled question and an always-visible text status. (#23)
 - Results screen with winner or draw, per-player statistics table, Play Again, Change Settings and Main Menu. (#22)

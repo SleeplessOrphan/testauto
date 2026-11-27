@@ -18,6 +18,16 @@ If placement fails, `state.status` becomes `ended` and "Round over" is shown. Co
 With `?seed=N`, questions and positions are repeatable. The test hook also carries `data-tiles`
 (JSON `{player,x,y,value}[]`) and `data-status` (`playing` or `ended`).
 
+## Pausing
+
+Escape, the window losing focus, or the tab becoming hidden pauses a running game (`data-phase="paused"`).
+Snakes, answer collection and the timer all stop, and movement keys are ignored. A "Paused" dialog
+(`PauseMenu`) takes focus with these buttons:
+
+- **Resume** closes the menu and shows the 3-second countdown before play continues.
+- **Restart** and **Exit** ask for confirmation (`ConfirmDialog`). Restart starts a new game with the same settings; Exit returns to the main menu.
+- **End Game** (Practice only) shows the results without a winner.
+
 ## Testing hook
 
 The element `data-testid="game"` carries read-only state: `data-phase` (`countdown` or `running`), `data-tick`,
