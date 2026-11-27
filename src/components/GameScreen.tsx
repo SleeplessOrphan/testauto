@@ -16,6 +16,7 @@ import { generateObstacles } from "@/lib/game/obstacles";
 import { GAMEPLAY_LEVELS } from "@/lib/settings/gameplay";
 import { CORRECT_POINTS, EMPTY_STATS, applyRefresh } from "@/lib/game/scoring";
 import { checkGameEnd } from "@/lib/game/modes";
+import { createSoundPlayer, type SoundName } from "@/lib/audio/sounds";
 import { Countdown } from "./Countdown";
 import { GameTimer } from "./GameTimer";
 import { PauseMenu } from "./PauseMenu";
@@ -63,7 +64,7 @@ type FeedbackKind = "correct" | "incorrect" | "collision";
 
 const pt =(p: { x: number; y: number }) => p.x + "," + p.y;
 
-export function GameScreen({ settings, onBack, onFinish, onRestart }: { settings: GameSettings; onBack: () => void; onFinish: (state: GameState) => void; onRestart: () => void }) {
+export function GameScreen({ settings, soundEnabled = true, onBack, onFinish, onRestart }: { settings: GameSettings; soundEnabled?: boolean; onBack: () => void; onFinish: (state: GameState) => void; onRestart: () => void }) {
   const [seed] = useState(() => parseSeed(window.location.search));
   const [round] = useState(() => startRound(settings, seed));
   const mode = settings.mode;
@@ -90,6 +91,13 @@ export function GameScreen({ settings, onBack, onFinish, onRestart }: { settings
   const seenCollisions = useRef({ 1: 0, 2: 0 });
   const timersRef = useRef<Partial<Record<PlayerId, ReturnType<typeof setTimeout>>>>({});
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  const [soundLog, setSoundLog] = useState<SoundName[]>([]);
+  const soundOn = useRef(soundEnabled);
+  soundOn.current = soundEnabled;
+  const [player] = useState(() =>
+    createSoundPlayer({ isEnabled: () => soundOn.current, onRequest: (n) => setSoundLog((l) => [...l, n]) }),
+  );
 
   // The setup form is taller than the window, so the page may arrive scrolled.
   useEffect(() => {
@@ -202,8 +210,9 @@ export function GameScreen({ settings, onBack, onFinish, onRestart }: { settings
         ? `Correct! +${CORRECT_POINTS}` + (r.bonus ? ` Streak bonus! +${r.bonus}` : "")
         :`Incorrect. The answer was ${r.answer}`;
       show(p, text, r.correct ? "correct" : "incorrect");
+      player.play(!r.correct ? "incorrect" : r.bonus ? "streak" : "correct");
     }
-  }, [state.results, show]);
+  }, [state.results, show, player]);
   useEffect(() => {
     for (const p of [1, 2] as const) {
       const c = state.stats?.[p].collisions ?? 0;
@@ -211,8 +220,9 @@ export function GameScreen({ settings, onBack, onFinish, onRestart }: { settings
       seenCollisions.current[p] = c;
       const text = state.stats![p].lives > 0 ? "Crash! -1 life" : "Crash! Eliminated";
       show(p, text, "collision");
+      player.play("collision");
     }
-  }, [state.stats, show]);
+  }, [state.stats, show, player]);
   useEffect(() => {
     const timers = timersRef.current;
     return () => Object.values(timers).forEach(clearTimeout);
@@ -241,6 +251,8 @@ export function GameScreen({ settings, onBack, onFinish, onRestart }: { settings
         data-reduced-motion={reducedMotion ? "true" : "false"}
         data-phase={ended ? "ended" : paused ? "paused" : count === null ? "running" : "countdown"}
         data-tick={ticks}
+        data-sound-log={JSON.stringify(soundLog)}
+        data-last-sound={soundLog[soundLog.length - 1] ?? ""}
         data-seed={seed ?? undefined}
         data-tick-rate={tickRate}
         data-obstacles={JSON.stringify(state.obstacles ?? [])}

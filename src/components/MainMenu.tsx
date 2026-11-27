@@ -25,6 +25,8 @@ export function MainMenu() {
   const [gameKey, setGameKey] = useState(0);
   // Setup is pre-filled only when reached from the results screen.
   const [reuse, setReuse] = useState(false);
+  // Shared app state for now; saving it locally is a later task.
+  const [soundEnabled, setSoundEnabled] = useState(true);
   const back = () => go("menu");
   const onFinish = useCallback((s: GameState) => {
     setFinal(s);
@@ -50,7 +52,7 @@ export function MainMenu() {
     return (
       <>
         <div hidden={screen === "results"}>
-          <GameScreen key={gameKey} settings={settings} onBack={back} onFinish={onFinish} onRestart={() => setGameKey((k) => k + 1)} />
+          <GameScreen key={gameKey} settings={settings} soundEnabled={soundEnabled} onBack={back} onFinish={onFinish} onRestart={() => setGameKey((k) => k + 1)} />
         </div>
         {screen === "results" && final && (
           <ResultsScreen
@@ -74,7 +76,7 @@ export function MainMenu() {
     );
   }
   if (screen === "instructions") return <Instructions onBack={back} />;
-  if (screen === "settings") return <SettingsScreen onBack={back} />;
+  if (screen === "settings") return <SettingsScreen onBack={back} soundEnabled={soundEnabled} onSoundChange={setSoundEnabled} />;
 
   return (
     <main>
