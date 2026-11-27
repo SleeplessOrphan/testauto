@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Starts the oldest queued task, but only when nothing else is running. Tasks run one at a time, in order.
+# Starts the oldest queued task, but only when nothing else is running and no task is stalled. Tasks run one
+# at a time, strictly in order.
 source "$(dirname "$0")/lib.sh"
 ensure_labels
 
@@ -9,6 +10,11 @@ busy=$(gh issue list --label in-progress --state open --json number -q '.[0].num
 if [[ -n $busy ]]; then log "task #$busy is still in progress"; exit 0; fi
 revert=$(gh pr list --state open --json number,headRefName -q '[.[] | select(.headRefName | startswith("revert/"))][0].number // empty')
 if [[ -n $revert ]]; then log "revert PR #$revert is still open"; exit 0; fi
+
+# Strictly in order: while any task is stalled, nothing new starts, so later tasks never build on top of
+# a task that hasn't merged. Retrying the stalled task (or closing it) lets the queue carry on.
+stuck=$(gh issue list --label stalled --state open --json number -q 'sort_by(.number) | .[0].number // empty')
+if [[ -n $stuck ]]; then log "task #$stuck is stalled; the queue waits for it"; exit 0; fi
 
 n=$(gh issue list --label queued --state open --limit 300 --json number -q 'sort_by(.number) | .[0].number // empty')
 if [[ -z $n ]]; then log "no queued tasks"; exit 0; fi

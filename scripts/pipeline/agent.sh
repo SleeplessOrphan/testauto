@@ -113,7 +113,7 @@ $questions
     fi
     # The tests must type-check, apart from imports of code that doesn't exist yet. Otherwise the coder
     # could only get them through by weakening the type check, which the protected files forbid.
-    type_errors=$(npx tsc --noEmit 2>&1 | grep -E '^tests/.*error TS' | grep -vE 'error TS(2307|2305|2614|2724|2339|2551|2353):' || true)
+    type_errors=$(npx tsc --noEmit 2>&1 | grep -E '^tests/.*error TS' | grep -vE 'error TS(2307|2305|2614|2724|2339|2551|2353|7006|7031):' || true)
     if [[ -n $type_errors ]]; then
       comment "$n" "Adversary's tests have type errors the code can't fix. <!-- cost:$cost -->
 \`\`\`
