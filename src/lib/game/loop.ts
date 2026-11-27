@@ -1,6 +1,7 @@
 import { GRID_COLUMNS, GRID_ROWS } from './constants';
 import { loseLife } from './lives';
 import { step } from './movement';
+import type { GameMode } from './modes';
 import type { GameState } from './types';
 
 /** Default tick length; the game screen passes the one for the chosen gameplay difficulty. */
@@ -17,7 +18,7 @@ export function accumulate(remainderMs: number, frameMs: number, tickMs = TICK_M
 }
 
 /** One movement cycle. A snake that would leave the grid or hit a snake costs a life and respawns, or is eliminated on its last life. */
-export function advance(state: GameState): GameState {
+export function advance(state: GameState, mode?: GameMode): GameState {
   const moved = step(state);
   // A moving snake frees its tail cell, but a stopped snake keeps it.
   const occupied = new Set(
@@ -50,7 +51,7 @@ export function advance(state: GameState): GameState {
     snakes: state.snakes.map((s, i) => (s.stopped || blocked[i] ? s : moved.snakes[i])),
   };
   state.snakes.forEach((s, i) => {
-    if (blocked[i]) next = loseLife(next, s.player);
+    if (blocked[i]) next = loseLife(next, s.player, undefined, mode);
   });
   // Longest length is tracked after respawns too, which never lengthen a snake.
   if (next.stats) {
