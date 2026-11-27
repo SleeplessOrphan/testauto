@@ -37,6 +37,12 @@ export interface PlayerStats {
   streak: number;
   /** Best run so far, for the results screen. */
   longestStreak: number;
+  /** Lives left; the player is eliminated at 0. */
+  lives: number;
+  /** Collisions suffered so far, for the results screen. */
+  collisions: number;
+  /** Longest the snake has been, kept even after it shrinks or respawns. */
+  longestLength: number;
 }
 
 /** Outcome of a player's latest collection; `seq` rises each time so the UI can tell events apart. */
@@ -64,6 +70,8 @@ export interface GameState {
   results?: Partial<Record<PlayerId, AnswerResult>>;
   /** Players whose tiles were collected; they get a new question next cycle. */
   refresh?: PlayerId[];
+  /** Players who lost their final life; their snakes and tiles are gone. */
+  eliminated?: PlayerId[];
   /** Set to 'ended' when the round is over. */
   status?: 'ended';
 }
