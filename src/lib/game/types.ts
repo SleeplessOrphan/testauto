@@ -33,6 +33,10 @@ export interface PlayerStats {
   score: number;
   correct: number;
   incorrect: number;
+  /** Current run of consecutive correct answers. */
+  streak: number;
+  /** Best run so far, for the results screen. */
+  longestStreak: number;
 }
 
 /** Outcome of a player's latest collection; `seq` rises each time so the UI can tell events apart. */
@@ -41,6 +45,8 @@ export interface AnswerResult {
   correct: boolean;
   /** The right answer to the question that was just answered. */
   answer: number;
+  /** Streak bonus points earned by this collection (0 when none). */
+  bonus?: number;
 }
 
 export interface GameState {

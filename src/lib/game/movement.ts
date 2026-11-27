@@ -1,5 +1,5 @@
 import { resolveCollisions } from './collision';
-import { EMPTY_STATS, nextSnakeLength, nextStats } from './scoring';
+import { CORRECT_POINTS, EMPTY_STATS, nextSnakeLength, nextStats } from './scoring';
 import type { Direction, GameState, PlayerId, Position } from './types';
 
 const DELTAS: Record<Direction, Position> = {
@@ -51,8 +51,10 @@ export function step(state: GameState): GameState {
     const stats = { 1: EMPTY_STATS, 2: EMPTY_STATS, ...state.stats };
     const results = { ...state.results };
     for (const [p, ok] of collected) {
-      stats[p] = nextStats(stats[p], ok);
-      results[p] = { seq: (state.results?.[p]?.seq ?? 0) + 1, correct: ok, answer: state.questions![p]!.answer };
+      const before = stats[p];
+      stats[p] = nextStats(before, ok);
+      const bonus = ok ? stats[p].score - before.score - CORRECT_POINTS : 0;
+      results[p] = { seq: (state.results?.[p]?.seq ?? 0) + 1, correct: ok, answer: state.questions![p]!.answer, bonus };
     }
     scoring = {
       stats,
