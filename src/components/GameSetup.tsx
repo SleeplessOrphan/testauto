@@ -17,12 +17,19 @@ const MODES: [GameMode["kind"], string][] = [
 
 type Forms = [PlayerForm, PlayerForm];
 
-export function GameSetup({ onBack, onStart }: { onBack: () => void; onStart: (s: GameSettings) => void }) {
-  const [forms, setForms] = useState<Forms>(() => [defaultPlayerForm(), defaultPlayerForm()]);
-  const [gameplay, setGameplay] = useState<GameplayDifficulty>(DEFAULT_GAMEPLAY);
-  const [kind, setKind] = useState<GameMode["kind"]>("timed");
-  const [minutes, setMinutes] = useState<1 | 3 | 5>(3);
-  const [target, setTarget] = useState<100 | 200 | 500>(200);
+export function GameSetup({ onBack, onStart, initial }: { onBack: () => void; onStart: (s: GameSettings) => void; initial?: GameSettings }) {
+  const [forms, setForms] = useState<Forms>(() =>
+    initial
+      ? [
+          { ...initial.players[0], topics: [...initial.players[0].topics] },
+          { ...initial.players[1], topics: [...initial.players[1].topics] },
+        ]
+      : [defaultPlayerForm(), defaultPlayerForm()],
+  );
+  const [gameplay, setGameplay] = useState<GameplayDifficulty>(initial?.gameplay ?? DEFAULT_GAMEPLAY);
+  const [kind, setKind] = useState<GameMode["kind"]>(initial?.mode.kind ?? "timed");
+  const [minutes, setMinutes] = useState<1 | 3 | 5>(initial?.mode.kind === "timed" ? initial.mode.minutes : 3);
+  const [target, setTarget] = useState<100 | 200 | 500>(initial?.mode.kind === "target" ? initial.mode.target : 200);
   const [errors, setErrors] = useState<SetupErrors>([null, null]);
 
   const update = (i: 0 | 1, patch: Partial<PlayerForm>) => {

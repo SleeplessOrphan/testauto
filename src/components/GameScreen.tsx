@@ -66,7 +66,7 @@ const outcomeText = (end: ReturnType<typeof checkGameEnd>, s: GameSettings) =>
 
 const pt =(p: { x: number; y: number }) => p.x + "," + p.y;
 
-export function GameScreen({ settings, onBack }: { settings: GameSettings; onBack: () => void }) {
+export function GameScreen({ settings, onBack, onFinish }: { settings: GameSettings; onBack: () => void; onFinish: (state: GameState) => void }) {
   const [seed] = useState(() => parseSeed(window.location.search));
   const [round] = useState(() => startRound(settings, seed));
   const mode = settings.mode;
@@ -92,7 +92,9 @@ export function GameScreen({ settings, onBack }: { settings: GameSettings; onBac
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // The setup form is taller than the window, so the page may arrive scrolled.
-  useEffect(() => window.scrollTo(0, 0), []);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   useEffect(() => {
     if (count === null) {
@@ -189,6 +191,12 @@ export function GameScreen({ settings, onBack }: { settings: GameSettings; onBac
     const timers = timersRef.current;
     return () => Object.values(timers).forEach(clearTimeout);
   }, []);
+
+  // Hand the final state to the parent, which swaps this screen for the results.
+  const finished = ended || state.status === "ended";
+  useEffect(() => {
+    if (finished) onFinish(stateRef.current);
+  }, [finished, onFinish]);
 
   // An eliminated player's snake is gone, so look snakes up by player.
   const s1 = state.snakes.find((s) => s.player === 1);
