@@ -170,6 +170,15 @@ $(clip .pipeline/coder-notes.md)
         dispatch adversary-tests.yml main "$n" "issue=$n"
         exit 0
       fi
+      # The adversary just corrected a disputed test and the code was already right: nothing to change,
+      # so check it again with CI (free) instead of stalling.
+      last=$(bot_comments "$n" | jq -r '[.[] | select(.body | contains("<!-- feedback -->") or contains("<!-- dispute-answered -->"))] | last | .body // empty')
+      if [[ $last == *"corrected its tests"* && -n $(pr_for_branch "$branch") ]]; then
+        comment "$n" "Coder round $r made no changes: the code already fits the corrected tests. Next: CI runs again. <!-- cost:$cost --> <!-- coder-round:$r -->"
+        set_stage "$n" ci
+        dispatch ci.yml "$branch" "$n" "issue=$n"
+        exit 0
+      fi
       comment "$n" "Coder round $r made no changes. <!-- cost:$cost --> <!-- coder-round:$r -->"
       stall "$n" "the coder made no changes in round $r"
       exit 0
