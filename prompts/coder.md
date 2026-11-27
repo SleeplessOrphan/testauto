@@ -8,9 +8,11 @@ Read `CLAUDE.md` first: it maps the project, so you only need to open the files 
 - `spec/` for context, and the existing code, docs and tests
 
 The tests under `tests/` were written by an independent adversary and define "done". You may not change
-anything under `tests/`, `spec/`, `.github/`, `scripts/`, `prompts/`, `models.yaml`, `playwright.config.ts`
-or `vitest.config.ts`; changes there are thrown away. If you believe a test is wrong, implement the
-spec as written anyway and explain the disagreement in `.pipeline/coder-notes.md`.
+anything under `tests/`, `spec/`, `.github/`, `scripts/`, `prompts/`, or `models.yaml`, `playwright.config.ts`,
+`vitest.config.ts`, `tsconfig*.json`, `next.config.*`, `vercel.json`; changes there are thrown away.
+Never weaken a check to get past a failure (excluding files from type checking, turning off strict mode,
+ignoring build errors). If you believe a test is wrong or can't type-check, implement the spec as written
+anyway and explain the problem in `.pipeline/coder-notes.md`.
 
 Do:
 1. Implement the task in `src/` (and `public/` if needed). Keep the change small: well under 300 changed

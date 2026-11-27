@@ -1,13 +1,13 @@
 name: ci
 run-name: ci ${{ github.ref_name }}
-# The neutral referee. Runs on your own pull requests and on main, and is started by the pipeline on agent
-# branches (task/* and revert/*). Every job name below is a required status check on main.
-# GitHub also fires pull_request runs for agent PRs and holds them for approval. They are not
-# needed (the pipeline starts its own runs), so if someone approves one, every job skips.
+# The neutral referee. Runs on every push to main and to your own branches (so your pull requests get
+# their checks), and is started by the pipeline on agent branches (task/* and revert/*). Every job name
+# below is a required status check on main.
+# There is deliberately no pull_request trigger: GitHub holds pull_request runs on PRs the pipeline opens
+# until a maintainer approves them, and a held run blocks the merge even when every check is green.
 on:
-  pull_request:
   push:
-    branches: [main]
+    branches-ignore: ["task/**", "revert/**"]
   workflow_dispatch:
     inputs:
       issue:
@@ -27,11 +27,10 @@ concurrency:
 
 env:
   GH_REPO: ${{ github.repository }}
-  BRANCH: ${{ github.head_ref || github.ref_name }}
+  BRANCH: ${{ github.ref_name }}
 
 jobs:
   build:
-    if: github.event_name != 'pull_request' || !(startsWith(github.head_ref, 'task/') || startsWith(github.head_ref, 'revert/'))
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -46,7 +45,6 @@ jobs:
         run: npx next build
 
   unit:
-    if: github.event_name != 'pull_request' || !(startsWith(github.head_ref, 'task/') || startsWith(github.head_ref, 'revert/'))
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -68,7 +66,6 @@ jobs:
           retention-days: 30
 
   e2e:
-    if: github.event_name != 'pull_request' || !(startsWith(github.head_ref, 'task/') || startsWith(github.head_ref, 'revert/'))
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -102,7 +99,6 @@ jobs:
           if-no-files-found: ignore
 
   docs-check:
-    if: github.event_name != 'pull_request' || !(startsWith(github.head_ref, 'task/') || startsWith(github.head_ref, 'revert/'))
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -124,7 +120,6 @@ jobs:
         run: bash "$RUNNER_TEMP/kit/scripts/guards/${{ github.job }}.sh" "$BASE" "$BRANCH"
 
   size-check:
-    if: github.event_name != 'pull_request' || !(startsWith(github.head_ref, 'task/') || startsWith(github.head_ref, 'revert/'))
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -146,7 +141,6 @@ jobs:
         run: bash "$RUNNER_TEMP/kit/scripts/guards/${{ github.job }}.sh" "$BASE" "$BRANCH"
 
   protected-files:
-    if: github.event_name != 'pull_request' || !(startsWith(github.head_ref, 'task/') || startsWith(github.head_ref, 'revert/'))
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

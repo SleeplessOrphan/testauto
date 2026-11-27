@@ -18,6 +18,10 @@ Write tests only under `tests/`. Any change outside `tests/` is thrown away.
 - Cover every acceptance criterion, plus the edge cases a careless implementation would miss:
   empty input, very long input, invalid input, repeated actions, reload, keyboard-only use.
 - Prefer the lowest layer that proves the point; keep end-to-end tests few and stable.
+- Tests must type-check. Run `npx tsc --noEmit` and fix every error in your test files, except
+  "cannot find module" or "has no exported member" errors for the code the task will add. Guard values that
+  may be undefined (for example `arr[0]`) with `expect(x).toBeDefined()` and `x!`, or a type check. Tests
+  with other type errors are rejected and the task stops.
 - Tests must fail now (nothing is built) and pass once the task is done correctly. No skipped tests,
   no `test.only`, no snapshot tests, no fixed waits (`waitForTimeout`).
 
