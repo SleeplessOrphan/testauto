@@ -53,13 +53,15 @@ one is retried (remove `stalled`, add `queued`) or closed, so later tasks never 
 - **No paid re-reviews.** When the adversary approves, the pipeline records a fingerprint of the task's changes. If the same changes come back for review (after main is merged into the branch, or when a stalled task is retried), the approval is reused instead of paying for a new review.
 - **Saved plans.** The planner saves each plan on the closed **Planner output** issue, keyed by a fingerprint of `spec/`. If a run fails after planning, run **planner** again from the Actions tab and it reuses the saved plan for free. A spec that has already become tasks is never planned twice.
 - **Cached installs.** npm packages and the Playwright browser are cached between runs, which saves Actions minutes.
+- **Medium effort on Sonnet.** The test writer, coder and reviewer run at `effort: medium` (set per role in `models.yaml`) instead of Sonnet's default of high, so they spend fewer tokens thinking. Remove the setting to go back to the default.
+- **The coder runs only its own e2e tests.** The coder runs Playwright on the task's own `tests/e2e/issue-<N>-*` files (plus any file named in the CI feedback), not the whole suite. CI still runs every e2e test, so nothing is checked less; each coder round is just quicker and reads less test output.
 
 ## Controls
 
 - **Pause everything:** open an issue (any title, e.g. "Pause") and add the label `pause`. Running steps finish and then wait. Close the issue to resume from where it stopped.
 - **Add a task by hand:** open an issue describing it with acceptance criteria and add the label `task`.
 - **Retry a stalled task:** remove `stalled` and add `queued`. Adding `queued` starts the dispatcher straight away. It picks up where it stopped: if the tests and a PR exist, only CI runs again (no AI cost), and the adversary's approval is reused when the code hasn't changed. Each retry gets a fresh allowance: the round limit and the per-task budget count again from the retry, so a retried task can spend up to the budget once more. If the task was already merged and only staging failed to confirm it (for example Vercel never reported the deploy), the retry just runs the staging check again. To start over from scratch on a fresh branch, also add `restart`. The label changes can be made in any order: the dispatcher waits 20 seconds after `queued` is added, and a task that is both `stalled` and `queued` counts as being retried.
-- **Change a model or limit:** edit `models.yaml` in your own pull request.
+- **Change a model, effort or limit:** edit `models.yaml` in your own pull request.
 
 ## Why the checks are also commit statuses
 
