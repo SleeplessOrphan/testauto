@@ -28,7 +28,10 @@ export function resolveCollisions(
     for (const other of state.snakes) {
       // The tail cell is free in the same cycle unless the snake grows; the old head cell
       // stays occupied because the body moves into it.
-      const occupied = other.growing ? other.segments : other.segments.slice(0, -1);
+      let occupied = other.growing ? other.segments : other.segments.slice(0, -1);
+      // A head proposed onto the snake's own neck is a reversal, which the engine never
+      // performs (queueDirection rejects it), so it is not judged as a self-collision.
+      if (other === snake) occupied = occupied.filter((c, i) => i !== 1);
       if (hits(occupied, head)) {
         collided.add(snake.player);
         break;
