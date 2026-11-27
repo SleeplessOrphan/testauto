@@ -38,6 +38,13 @@ catch_up_with_main() {
   git push -q origin "HEAD:$branch"
 }
 
+# Report the verdict as a commit status on the commit the adversary reviewed (see report_status in lib.sh).
+if [[ -n $verdict ]]; then
+  [[ $verdict == approve ]] && st=success || st=failure
+  report_status "$GITHUB_SHA" adversary-verdict "$st" "$verdict"
+  sleep 3
+fi
+
 if [[ $branch == revert/* ]]; then
   if [[ $verdict == approve ]] && sha=$(merge); then
     alert "↩️ Reverted: PR #$pr undid a change that failed on staging (task #$n). Checking staging again."

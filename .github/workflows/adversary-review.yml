@@ -13,6 +13,7 @@ on:
     branches-ignore: [main, "task/**", "revert/**"]
 
 permissions:
+  statuses: write
   contents: write
   issues: write
   pull-requests: write

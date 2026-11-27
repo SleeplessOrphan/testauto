@@ -87,9 +87,21 @@ run_cost() {
 
 paused() { [[ -n $(gh issue list --label pause --state open --json number -q '.[0].number // empty') ]]; }
 
+# GitHub doesn't count check runs from workflow_dispatch runs towards a PR's required checks (the merge box
+# shows them as "Expected - Waiting for status"). So the pipeline also reports each result as a commit
+# status with the same name, which does count. Usage: report_status <sha> <context> <success|failure> [description]
+report_status() {
+  local sha=$1 ctx=$2 state=$3 desc=${4:-}
+  gh api -X POST "repos/$GH_REPO/statuses/$sha" -f state="$state" -f context="$ctx" \
+    -f target_url="$GITHUB_SERVER_URL/$GH_REPO/actions/runs/$GITHUB_RUN_ID" -f description="${desc:0:140}" >/dev/null \
+    || echo "::warning::could not report status $ctx on ${sha:0:7}"
+}
+
 alerts_issue() {
   local n
-  n=$(gh issue list --label alerts --state open --json number -q '.[0].number // empty')
+  # Open one first; else reuse a closed one (comments on it still email you) instead of making a duplicate.
+  n=$(gh issue list --label alerts --state open --json number -q 'sort_by(.number) | .[0].number // empty')
+  [[ -n $n ]] || n=$(gh issue list --label alerts --state closed --json number -q 'sort_by(.number) | .[0].number // empty')
   if [[ -z $n ]]; then
     n=$(gh issue create --title "System alerts" --label alerts \
       --body "The pipeline posts stalls, reverts, budget stops and planning reports here. Subscribe to this issue to get them by email." |

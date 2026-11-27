@@ -13,6 +13,12 @@ pr=$(pr_for_branch "$branch")
 
 failed=$(jq -r 'to_entries[] | select(.value.result != "success") | .key' <<<"$RESULTS" | sort)
 
+# Report every check's result as a commit status on the commit CI tested (see report_status in lib.sh).
+while IFS=$'\t' read -r job result; do
+  [[ $result == success ]] && st=success || st=failure
+  report_status "$GITHUB_SHA" "$job" "$st" "$result"
+done < <(jq -r 'to_entries[] | [.key, .value.result] | @tsv' <<<"$RESULTS")
+
 if [[ $branch == revert/* ]]; then
   if [[ -n $failed ]]; then
     alert "The automatic revert PR #$pr failed CI ($(tr '\n' ' ' <<<"$failed")). Main may be broken; please look. [Run]($run_url)"
