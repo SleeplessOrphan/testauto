@@ -1,11 +1,14 @@
 "use client";
 
 import { useRef, useState } from "react";
+import type { GameSettings } from "@/lib/settings/types";
+import { GamePlaceholder } from "./GamePlaceholder";
+import { GameSetup } from "./GameSetup";
 import { Instructions } from "./Instructions";
 import { ScreenHeading } from "./ScreenHeading";
 import { SettingsScreen } from "./SettingsScreen";
 
-type Screen = "menu" | "setup" | "instructions" | "settings";
+type Screen = "menu" | "setup" | "game" | "instructions" | "settings";
 
 export function MainMenu() {
   const [screen, setScreen] = useState<Screen>("menu");
@@ -14,16 +17,21 @@ export function MainMenu() {
     navigated.current = true;
     setScreen(next);
   };
+  const [settings, setSettings] = useState<GameSettings | null>(null);
   const back = () => go("menu");
 
   if (screen === "setup") {
     return (
-      <main>
-        <ScreenHeading level={2}>Game setup</ScreenHeading>
-        <button type="button" onClick={back}>Back</button>
-      </main>
+      <GameSetup
+        onBack={back}
+        onStart={(s) => {
+          setSettings(s);
+          go("game");
+        }}
+      />
     );
   }
+  if (screen === "game" && settings) return <GamePlaceholder settings={settings} onBack={back} />;
   if (screen === "instructions") return <Instructions onBack={back} />;
   if (screen === "settings") return <SettingsScreen onBack={back} />;
 

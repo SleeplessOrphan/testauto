@@ -25,6 +25,7 @@ correct answers to maths questions. Built autonomously, one small task at a time
 | `src/components/` | React screens: `MainMenu` switches between menu, setup, instructions and settings. |
 | `src/lib/` | Plain TypeScript logic (game rules, question generation). Keep it free of React so it is unit-testable. |
 | `src/lib/game/` | Game engine: grid constants, types, initial state, movement (`step`, `queueDirection`), key mapping. |
+| `src/lib/settings/` | `GameSettings` types, setup defaults and validation (`buildSettings`). |
 | `src/lib/maths/` | Question generation: `generate.ts` entry point, `topics/` per-topic generators, `distractors.ts`, `random.ts`. |
 | `tests/unit/` | Vitest tests, `*.test.ts`. |
 | `tests/e2e/` | Playwright tests run against a local production build at `/`. |
