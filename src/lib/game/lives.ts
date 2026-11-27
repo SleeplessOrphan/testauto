@@ -82,9 +82,7 @@ export function loseLife(state: GameState, player: PlayerId, rng: () => number =
   if (options.length === 0) options = placements(blockers, false);
   if (options.length === 0) return eliminate();
 
-  // Prefer the longest clear run ahead so a respawned snake is not back at a wall within a few ticks.
-  const best = Math.max(...options.map((o) => o.runway));
-  options = options.filter((o) => o.runway === best);
+  // Any spot with a clear run ahead will do; always taking the longest run made a lone snake outlive slow games.
   const pick = options[Math.min(options.length - 1, Math.floor(rng() * options.length))];
   const respawned: Snake = {
     player,
