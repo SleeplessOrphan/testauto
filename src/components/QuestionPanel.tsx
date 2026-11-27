@@ -7,6 +7,8 @@ export function QuestionPanel({
   question,
   score,
   streak,
+  lives,
+  eliminated,
   feedback,
 }: {
   player: PlayerId;
@@ -14,6 +16,8 @@ export function QuestionPanel({
   question: string;
   score: number;
   streak: number;
+  lives: number;
+  eliminated: boolean;
   feedback: string;
 }) {
   return (
@@ -22,6 +26,8 @@ export function QuestionPanel({
       <span className="question-text">{question}</span>
       <span className="player-score">Score: {score}</span>
       <span className="player-streak">Streak: {streak}</span>
+      <span className="player-lives">Lives: {lives}</span>
+      {eliminated && <span className="player-status">Eliminated</span>}
       <span className="player-feedback" aria-live="polite">{feedback}</span>
     </div>
   );

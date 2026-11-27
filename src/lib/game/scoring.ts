@@ -8,7 +8,16 @@ export const STREAK_BONUS = 20;
 /** Streak lengths that earn the bonus. */
 export const STREAK_BONUS_AT: readonly number[] = [5, 10];
 
-export const EMPTY_STATS: PlayerStats = { score: 0, correct: 0, incorrect: 0, streak: 0, longestStreak: 0 };
+export const EMPTY_STATS: PlayerStats = {
+  score: 0,
+  correct: 0,
+  incorrect: 0,
+  streak: 0,
+  longestStreak: 0,
+  lives: 3,
+  collisions: 0,
+  longestLength: MIN_SNAKE_LENGTH,
+};
 
 export function nextScore(score: number, correct: boolean): number {
   return correct ? score + CORRECT_POINTS : Math.max(0, score - INCORRECT_PENALTY);
@@ -18,10 +27,14 @@ export function nextSnakeLength(length: number, correct: boolean): number {
   return correct ? length + 1 : Math.max(MIN_SNAKE_LENGTH, length - 1);
 }
 
-export function nextStats(stats: PlayerStats, correct: boolean): PlayerStats {
+/** Generic so callers holding only the scoring fields still type-check; other fields pass through. */
+export function nextStats<
+  T extends Pick<PlayerStats, 'score' | 'correct' | 'incorrect' | 'streak' | 'longestStreak'>,
+>(stats: T, correct: boolean): T {
   const streak = correct ? stats.streak + 1 : 0;
   const bonus = correct && STREAK_BONUS_AT.includes(streak) ? STREAK_BONUS : 0;
   return {
+    ...stats,
     score: nextScore(stats.score, correct) + bonus,
     streak,
     longestStreak: Math.max(stats.longestStreak, streak),

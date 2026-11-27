@@ -64,6 +64,7 @@ export function GameScreen({ settings, onBack }: { settings: GameSettings; onBac
   const rngRef = useRef(seed === null ? Math.random : mulberry32(seed + 1));
   const [feedback, setFeedback] = useState({ 1: "", 2: "" });
   const seenRef = useRef({ 1: 0, 2: 0 });
+  const seenCollisions = useRef({ 1: 0, 2: 0 });
   const timersRef = useRef<Partial<Record<PlayerId, ReturnType<typeof setTimeout>>>>({});
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -135,11 +136,25 @@ export function GameScreen({ settings, onBack }: { settings: GameSettings; onBac
     }
   }, [state.results]);
   useEffect(() => {
+    for (const p of [1, 2] as const) {
+      const c = state.stats?.[p].collisions ?? 0;
+      if (c === seenCollisions.current[p]) continue;
+      seenCollisions.current[p] = c;
+      const text = state.stats![p].lives > 0 ? "Crash! -1 life" : "Crash! Eliminated";
+      setFeedback((f) => ({ ...f, [p]: text }));
+      clearTimeout(timersRef.current[p]);
+      timersRef.current[p] = setTimeout(() => setFeedback((f) => ({ ...f, [p]: "" })), FEEDBACK_MS);
+    }
+  }, [state.stats]);
+  useEffect(() => {
     const timers = timersRef.current;
     return () => Object.values(timers).forEach(clearTimeout);
   }, []);
 
-  const [s1, s2] = state.snakes;
+  // An eliminated player's snake is gone, so look snakes up by player.
+  const s1 = state.snakes.find((s) => s.player === 1);
+  const s2 = state.snakes.find((s) => s.player === 2);
+  const seg = (s?: { segments: { x: number; y: number }[] }) => (s ? s.segments.map(pt).join(";") : "");
   return (
     <main className="game-screen">
       <div
@@ -155,24 +170,28 @@ export function GameScreen({ settings, onBack }: { settings: GameSettings; onBac
         data-p2-correct={state.stats?.[2].correct ?? 0}
         data-p1-incorrect={state.stats?.[1].incorrect ?? 0}
         data-p2-incorrect={state.stats?.[2].incorrect ?? 0}
-        data-p1-head={pt(s1.segments[0])}
-        data-p2-head={pt(s2.segments[0])}
-        data-p1-length={s1.segments.length}
-        data-p2-length={s2.segments.length}
-        data-p1-direction={s1.direction}
-        data-p2-direction={s2.direction}
-        data-p1-segments={s1.segments.map(pt).join(";")}
-        data-p2-segments={s2.segments.map(pt).join(";")}
+        data-p1-head={s1 ? pt(s1.segments[0]) : ""}
+        data-p2-head={s2 ? pt(s2.segments[0]) : ""}
+        data-p1-length={s1?.segments.length ?? 0}
+        data-p2-length={s2?.segments.length ?? 0}
+        data-p1-direction={s1?.direction}
+        data-p2-direction={s2?.direction}
+        data-p1-segments={seg(s1)}
+        data-p2-segments={seg(s2)}
       >
         <div className="game-names">
           <QuestionPanel player={1} name={settings.players[0].name} question={state.questions?.[1]?.text ?? ""}
             score={state.stats?.[1].score ?? 0}
             streak={state.stats?.[1].streak ?? 0}
+            lives={state.stats?.[1].lives ?? 3}
+            eliminated={state.eliminated?.includes(1) ?? false}
             feedback={feedback[1]}
           />
           <QuestionPanel player={2} name={settings.players[1].name} question={state.questions?.[2]?.text ?? ""}
             score={state.stats?.[2].score ?? 0}
             streak={state.stats?.[2].streak ?? 0}
+            lives={state.stats?.[2].lives ?? 3}
+            eliminated={state.eliminated?.includes(2) ?? false}
             feedback={feedback[2]}
           />
         </div>

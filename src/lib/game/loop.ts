@@ -1,4 +1,5 @@
 import { GRID_COLUMNS, GRID_ROWS } from './constants';
+import { loseLife } from './lives';
 import { step } from './movement';
 import type { GameState } from './types';
 
@@ -15,7 +16,7 @@ export function accumulate(remainderMs: number, frameMs: number, tickMs = TICK_M
   return { ticks, remainderMs: total - ticks * tickMs };
 }
 
-/** One movement cycle. A snake that would leave the grid or hit a snake stays put for good (lives come later). */
+/** One movement cycle. A snake that would leave the grid or hit a snake costs a life and respawns, or is eliminated on its last life. */
 export function advance(state: GameState): GameState {
   const moved = step(state);
   // A moving snake frees its tail cell, but a stopped snake keeps it.
@@ -42,11 +43,22 @@ export function advance(state: GameState): GameState {
       }
     }),
   );
-  // Keep step()'s scoring changes (tiles, stats, refresh) along with the snakes.
-  return {
+  // Keep step()'s scoring changes (tiles, stats, refresh); a blocked snake stays put until loseLife respawns it.
+  let next: GameState = {
     ...moved,
-    snakes: state.snakes.map((s, i) =>
-      s.stopped ? s : blocked[i] ? { ...s, stopped: true } : moved.snakes[i],
-    ),
+    snakes: state.snakes.map((s, i) => (s.stopped || blocked[i] ? s : moved.snakes[i])),
   };
+  state.snakes.forEach((s, i) => {
+    if (blocked[i]) next = loseLife(next, s.player);
+  });
+  // Longest length is tracked after respawns too, which never lengthen a snake.
+  if (next.stats) {
+    const updated = { ...next.stats };
+    for (const s of next.snakes) {
+      const st = updated[s.player];
+      if (s.segments.length > st.longestLength) updated[s.player] = { ...st, longestLength: s.segments.length };
+    }
+    next = { ...next, stats: updated };
+  }
+  return next;
 }
