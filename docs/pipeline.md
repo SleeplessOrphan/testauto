@@ -57,6 +57,13 @@ A stalled task gets the `stalled` label, a comment with the reason, and a mentio
 - **Retry a stalled task:** remove `stalled` and add `queued`. It starts again from scratch on a fresh branch.
 - **Change a model or limit:** edit `models.yaml` in your own pull request.
 
+## Why the checks are also commit statuses
+
+GitHub doesn't count check runs from `workflow_dispatch` runs towards a pull request's required checks: the
+merge box lists them as "Expected — Waiting for status to be reported". So after CI and after the review,
+the pipeline also posts each result (`build`, `unit`, `e2e`, `docs-check`, `size-check`, `protected-files`,
+`adversary-verdict`) as a commit status with the same name on the commit that was tested, and those count.
+
 ## Why there are no pull_request runs
 
 GitHub holds `pull_request` runs on PRs opened by the pipeline until a maintainer approves them, and a held

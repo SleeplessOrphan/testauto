@@ -19,6 +19,8 @@
 - Extra pull_request runs that GitHub opens on agent PRs now skip, so approving one by hand can't block the merge.
 
 ### Fixed (pipeline)
+- Agent PRs still couldn't merge: GitHub ignores check runs from `workflow_dispatch` runs for required checks. The pipeline now also reports each check result and the adversary's verdict as commit statuses, which count.
+- If the System alerts issue was closed, the pipeline opened a new one. It now keeps using the old one.
 - Agent PRs could never merge: GitHub held the duplicate pull_request runs for approval, and a held run blocks the merge. `ci` and `adversary-review` now run on pushes instead of pull_request.
 - The coder could get past a type error in the adversary's tests by excluding `tests` in `tsconfig.json`. `tsconfig*.json`, `next.config.*`, `vercel.json` and `.gitattributes` are now protected, the adversary's tests must type-check before the coder starts, and the review treats a weakened check as a blocker.
 - When GitHub refused a merge, the stall message said "unknown reason" because the error was lost in a subshell. It now shows GitHub's message.
