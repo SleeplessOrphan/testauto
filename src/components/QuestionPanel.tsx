@@ -6,12 +6,14 @@ export function QuestionPanel({
   name,
   question,
   score,
+  streak,
   feedback,
 }: {
   player: PlayerId;
   name: string;
   question: string;
   score: number;
+  streak: number;
   feedback: string;
 }) {
   return (
@@ -19,6 +21,7 @@ export function QuestionPanel({
       <span className="player-name">{name}</span>
       <span className="question-text">{question}</span>
       <span className="player-score">Score: {score}</span>
+      <span className="player-streak">Streak: {streak}</span>
       <span className="player-feedback" aria-live="polite">{feedback}</span>
     </div>
   );

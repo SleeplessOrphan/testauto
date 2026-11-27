@@ -126,7 +126,9 @@ export function GameScreen({ settings, onBack }: { settings: GameSettings; onBac
       const r = state.results?.[p];
       if (!r || r.seq === seenRef.current[p]) continue;
       seenRef.current[p] = r.seq;
-      const text = r.correct ? `Correct! +${CORRECT_POINTS}` : `Incorrect. The answer was ${r.answer}`;
+      const text = r.correct
+        ? `Correct! +${CORRECT_POINTS}` + (r.bonus ? ` Streak bonus! +${r.bonus}` : "")
+        :`Incorrect. The answer was ${r.answer}`;
       setFeedback((f) => ({ ...f, [p]: text }));
       clearTimeout(timersRef.current[p]);
       timersRef.current[p] = setTimeout(() => setFeedback((f) => ({ ...f, [p]: "" })), FEEDBACK_MS);
@@ -165,10 +167,12 @@ export function GameScreen({ settings, onBack }: { settings: GameSettings; onBac
         <div className="game-names">
           <QuestionPanel player={1} name={settings.players[0].name} question={state.questions?.[1]?.text ?? ""}
             score={state.stats?.[1].score ?? 0}
+            streak={state.stats?.[1].streak ?? 0}
             feedback={feedback[1]}
           />
           <QuestionPanel player={2} name={settings.players[1].name} question={state.questions?.[2]?.text ?? ""}
             score={state.stats?.[2].score ?? 0}
+            streak={state.stats?.[2].streak ?? 0}
             feedback={feedback[2]}
           />
         </div>

@@ -4,8 +4,11 @@ import type { GameState, PlayerId, PlayerStats } from './types';
 export const CORRECT_POINTS = 10;
 export const INCORRECT_PENALTY = 5;
 export const MIN_SNAKE_LENGTH = 3;
+export const STREAK_BONUS = 20;
+/** Streak lengths that earn the bonus. */
+export const STREAK_BONUS_AT: readonly number[] = [5, 10];
 
-export const EMPTY_STATS: PlayerStats = { score: 0, correct: 0, incorrect: 0 };
+export const EMPTY_STATS: PlayerStats = { score: 0, correct: 0, incorrect: 0, streak: 0, longestStreak: 0 };
 
 export function nextScore(score: number, correct: boolean): number {
   return correct ? score + CORRECT_POINTS : Math.max(0, score - INCORRECT_PENALTY);
@@ -16,8 +19,12 @@ export function nextSnakeLength(length: number, correct: boolean): number {
 }
 
 export function nextStats(stats: PlayerStats, correct: boolean): PlayerStats {
+  const streak = correct ? stats.streak + 1 : 0;
+  const bonus = correct && STREAK_BONUS_AT.includes(streak) ? STREAK_BONUS : 0;
   return {
-    score: nextScore(stats.score, correct),
+    score: nextScore(stats.score, correct) + bonus,
+    streak,
+    longestStreak: Math.max(stats.longestStreak, streak),
     correct: stats.correct + (correct ? 1 : 0),
     incorrect: stats.incorrect + (correct ? 0 : 1),
   };

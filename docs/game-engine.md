@@ -8,6 +8,8 @@ Pure TypeScript in `src/lib/game/` (no React, no canvas).
 
 `step()` collects a tile when a moving snake's head lands on one of its own tiles and `questions[player]` exists in the state. It updates `stats` (score, correct, incorrect), removes that player's three tiles, records `results[player]` for feedback and adds the player to `refresh`. `applyRefresh()` runs at the start of the next cycle and gives each flagged player a new question and three new tiles; the other player is untouched.
 
+Streaks: `stats[player]` also holds `streak` (consecutive correct answers, reset to 0 by an incorrect one) and `longestStreak`. Reaching a streak of 5 and of 10 adds `STREAK_BONUS` (20) on top of the usual +10; `results[player].bonus` carries it so feedback reads "Correct! +10 Streak bonus! +20". The panel shows "Streak: N" next to the score.
+
 The game screen shows each player's score and an `aria-live="polite"` feedback line ("Correct! +10", or the right answer after a wrong one) for about 2 seconds. The game keeps running meanwhile.
 
 - `constants.ts`: the 40 x 25 grid.
