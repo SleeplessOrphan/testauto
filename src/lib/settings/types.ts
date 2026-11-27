@@ -7,11 +7,13 @@ export interface PlayerSettings {
 }
 
 import type { GameplayDifficulty } from "./gameplay";
+import type { GameMode } from "@/lib/game/modes";
 
 export interface GameSettings {
   players: [PlayerSettings, PlayerSettings];
   /** Shared by both players; separate from each player's maths difficulty. */
   gameplay: GameplayDifficulty;
+  mode: GameMode;
 }
 
 /** Raw form values for one player, before defaults are applied. */

@@ -14,7 +14,9 @@ import { placeAnswerTiles } from "@/lib/game/answers";
 import { generateObstacles } from "@/lib/game/obstacles";
 import { GAMEPLAY_LEVELS } from "@/lib/settings/gameplay";
 import { CORRECT_POINTS, EMPTY_STATS, applyRefresh } from "@/lib/game/scoring";
+import { checkGameEnd } from "@/lib/game/modes";
 import { Countdown } from "./Countdown";
+import { GameTimer } from "./GameTimer";
 import { QuestionPanel } from "./QuestionPanel";
 
 /** Small seeded generator so `?seed=N` makes questions and tile positions repeatable. */
@@ -55,16 +57,32 @@ function startRound(settings: GameSettings, seed: number | null) {
 /** How long the correct answer / praise stays in a player's feedback area. */
 const FEEDBACK_MS = 2000;
 
-const pt = (p: { x: number; y: number }) => p.x + "," + p.y;
+const outcomeText = (end: ReturnType<typeof checkGameEnd>, s: GameSettings) =>
+  end.outcome === "win" && end.winner
+    ? `${s.players[end.winner - 1].name} wins!`
+    : end.outcome === "draw"
+      ? "It's a draw!"
+      : "Game over";
+
+const pt =(p: { x: number; y: number }) => p.x + "," + p.y;
 
 export function GameScreen({ settings, onBack }: { settings: GameSettings; onBack: () => void }) {
   const [seed] = useState(() => parseSeed(window.location.search));
   const [round] = useState(() => startRound(settings, seed));
-  const [state, setState] = useState<GameState>(round.state);
+  const mode = settings.mode;
+  const [state, setState] = useState<GameState>(() =>
+    mode.kind === "timed" ? { ...round.state, timeRemaining: mode.minutes * 60 } : round.state,
+  );
+  // Test-only: `?timeScale=N` runs the timer N times faster.
+  const [timeScale] = useState(() => {
+    const n = Number(new URLSearchParams(window.location.search).get("timeScale"));
+    return Number.isFinite(n) && n > 0 ? n : 1;
+  });
+  const [ended, setEnded] = useState(false);
   const [count, setCount] = useState<number | null>(3);
   const tickRate = GAMEPLAY_LEVELS[settings.gameplay].cellsPerSecond;
   const [ticks, setTicks] = useState(0);
-  const stateRef = useRef(round.state);
+  const stateRef = useRef(state);
   const runningRef = useRef(false);
   const rngRef = useRef(seed === null ? Math.random : mulberry32(seed + 1));
   const [feedback, setFeedback] = useState({ 1: "", 2: "" });
@@ -72,6 +90,9 @@ export function GameScreen({ settings, onBack }: { settings: GameSettings; onBac
   const seenCollisions = useRef({ 1: 0, 2: 0 });
   const timersRef = useRef<Partial<Record<PlayerId, ReturnType<typeof setTimeout>>>>({});
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // The setup form is taller than the window, so the page may arrive scrolled.
+  useEffect(() => window.scrollTo(0, 0), []);
 
   useEffect(() => {
     if (count === null) {
@@ -83,14 +104,21 @@ export function GameScreen({ settings, onBack }: { settings: GameSettings; onBac
   }, [count]);
 
   useEffect(() => {
-    if (count !== null || state.status === "ended") return;
+    if (count !== null || state.status === "ended" || ended) return;
     let raf = 0;
     let last = performance.now();
     let rest = 0;
     const frame = (now: number) => {
       const a = accumulate(rest, now - last, 1000 / tickRate);
+      // Same cap as accumulate, so a background tab does not drain the clock.
+      const frameMs = Math.min(Math.max(now - last, 0), 250);
       last = now;
       rest = a.remainderMs;
+      if (stateRef.current.timeRemaining !== undefined) {
+        const t = Math.max(0, stateRef.current.timeRemaining - (frameMs * timeScale) / 1000);
+        stateRef.current = { ...stateRef.current, timeRemaining: t };
+        setState(stateRef.current);
+      }
       if (a.ticks > 0) {
         let next = stateRef.current;
         for (let i = 0; i < a.ticks; i++) {
@@ -104,17 +132,23 @@ export function GameScreen({ settings, onBack }: { settings: GameSettings; onBac
             },
             rngRef.current,
           );
-          next = advance(next);
+          next = advance(next, mode);
+          if (checkGameEnd(next, mode).ended) break;
         }
         stateRef.current = next;
         setState(next);
         setTicks((t) => t + a.ticks);
       }
+      if (checkGameEnd(stateRef.current, mode).ended) {
+        runningRef.current = false;
+        setEnded(true);
+        return;
+      }
       raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(raf);
-  }, [count, state.status, settings.players, tickRate]);
+  }, [count, state.status, ended, settings.players, tickRate, mode, timeScale]);
 
   const onDirection = useCallback((player: PlayerId, direction: Direction) => {
     if (!runningRef.current) return;
@@ -170,7 +204,7 @@ export function GameScreen({ settings, onBack }: { settings: GameSettings; onBac
     <main className="game-screen">
       <div
         data-testid="game"
-        data-phase={count === null ? "running" : "countdown"}
+        data-phase={ended ? "ended" : count === null ? "running" : "countdown"}
         data-tick={ticks}
         data-seed={seed ?? undefined}
         data-tick-rate={tickRate}
@@ -197,6 +231,7 @@ export function GameScreen({ settings, onBack }: { settings: GameSettings; onBac
             score={state.stats?.[1].score ?? 0}
             streak={state.stats?.[1].streak ?? 0}
             lives={state.stats?.[1].lives ?? 3}
+            unlimitedLives={mode.kind === "practice"}
             eliminated={state.eliminated?.includes(1) ?? false}
             feedback={feedback[1]}
           />
@@ -204,10 +239,13 @@ export function GameScreen({ settings, onBack }: { settings: GameSettings; onBac
             score={state.stats?.[2].score ?? 0}
             streak={state.stats?.[2].streak ?? 0}
             lives={state.stats?.[2].lives ?? 3}
+            unlimitedLives={mode.kind === "practice"}
             eliminated={state.eliminated?.includes(2) ?? false}
             feedback={feedback[2]}
           />
         </div>
+        {state.timeRemaining !== undefined && <GameTimer seconds={state.timeRemaining} />}
+        {mode.kind === "target" && <p className="game-info">Target: {mode.target}</p>}
         <div className="game-board">
           <canvas
             ref={canvasRef}
@@ -217,7 +255,8 @@ export function GameScreen({ settings, onBack }: { settings: GameSettings; onBac
             aria-label="Game board"
           />
           <Countdown value={count} />
-          {state.status === "ended" && <p role="status" className="round-over">Round over</p>}
+          {ended && <p role="status" className="round-over">{outcomeText(checkGameEnd(state, mode), settings)}</p>}
+          {!ended && state.status === "ended" && <p role="status" className="round-over">Round over</p>}
         </div>
       </div>
       <button type="button" onClick={onBack}>Back to menu</button>

@@ -5,13 +5,24 @@ import { DIFFICULTY_OPTIONS, TOPIC_OPTIONS, defaultName, defaultPlayerForm } fro
 import type { GameSettings, PlayerForm } from "@/lib/settings/types";
 import { DEFAULT_GAMEPLAY, GAMEPLAY_LEVELS, type GameplayDifficulty } from "@/lib/settings/gameplay";
 import { buildSettings, type SetupErrors } from "@/lib/settings/validate";
+import type { GameMode } from "@/lib/game/modes";
 import { ScreenHeading } from "./ScreenHeading";
+
+const MODES: [GameMode["kind"], string][] = [
+  ["timed", "Timed"],
+  ["survival", "Survival"],
+  ["target", "Target Score"],
+  ["practice", "Practice"],
+];
 
 type Forms = [PlayerForm, PlayerForm];
 
 export function GameSetup({ onBack, onStart }: { onBack: () => void; onStart: (s: GameSettings) => void }) {
   const [forms, setForms] = useState<Forms>(() => [defaultPlayerForm(), defaultPlayerForm()]);
   const [gameplay, setGameplay] = useState<GameplayDifficulty>(DEFAULT_GAMEPLAY);
+  const [kind, setKind] = useState<GameMode["kind"]>("timed");
+  const [minutes, setMinutes] = useState<1 | 3 | 5>(3);
+  const [target, setTarget] = useState<100 | 200 | 500>(200);
   const [errors, setErrors] = useState<SetupErrors>([null, null]);
 
   const update = (i: 0 | 1, patch: Partial<PlayerForm>) => {
@@ -25,9 +36,12 @@ export function GameSetup({ onBack, onStart }: { onBack: () => void; onStart: (s
     }
   };
 
+  const mode: GameMode =
+    kind === "timed" ? { kind, minutes } : kind === "target" ? { kind, target } : { kind };
+
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    const result = buildSettings(forms, gameplay);
+    const result = buildSettings(forms, gameplay, mode);
     if (result.ok) onStart(result.settings);
     else setErrors(result.errors);
   };
@@ -102,6 +116,35 @@ export function GameSetup({ onBack, onStart }: { onBack: () => void; onStart: (s
             </label>
           ))}
         </fieldset>
+        <fieldset>
+          <legend>Game mode</legend>
+          {MODES.map(([k, label]) => (
+            <label key={k}>
+              <input type="radio" name="mode" checked={kind === k} onChange={() => setKind(k)} /> {label}
+            </label>
+          ))}
+        </fieldset>
+        {kind === "timed" && (
+          <fieldset>
+            <legend>Duration</legend>
+            {([1, 3, 5] as const).map((m) => (
+              <label key={m}>
+                <input type="radio" name="duration" checked={minutes === m} onChange={() => setMinutes(m)} />
+                <span>{`${m} ${m === 1 ? "minute" : "minutes"}`}</span>
+              </label>
+            ))}
+          </fieldset>
+        )}
+        {kind === "target" && (
+          <fieldset>
+            <legend>Target score</legend>
+            {([100, 200, 500] as const).map((t) => (
+              <label key={t}>
+                <input type="radio" name="target" checked={target === t} onChange={() => setTarget(t)} /> {t}
+              </label>
+            ))}
+          </fieldset>
+        )}
         <button type="submit">Start Game</button>
         <button type="button" onClick={onBack}>Back</button>
       </form>
