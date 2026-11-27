@@ -1,6 +1,7 @@
 name: intake
 run-name: "intake #${{ github.event.issue.number }}"
-# Lets you add a task by hand: label any issue `task` and it joins the queue.
+# Lets you add a task by hand: label any issue `task` and it joins the queue. Adding `queued` (to retry a
+# stalled task) starts the dispatcher straight away.
 # Closing the pause issue (or removing its `pause` label) resumes the pipeline.
 on:
   issues:
@@ -14,7 +15,7 @@ permissions:
 
 jobs:
   queue:
-    if: github.event.action == 'labeled' && github.event.label.name == 'task'
+    if: github.event.action == 'labeled' && (github.event.label.name == 'task' || github.event.label.name == 'queued')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:

@@ -26,6 +26,7 @@
 - Extra pull_request runs that GitHub opens on agent PRs now skip, so approving one by hand can't block the merge.
 
 ### Fixed (pipeline)
+- Adding `queued` to an issue by hand now starts the dispatcher at once. Before, a retried task sat in the queue until some other run happened to start the dispatcher.
 - Tasks now run strictly in order: while a task is stalled, no new task starts. Implicit `any` errors in the adversary's tests (caused by code that doesn't exist yet) no longer stall a task. (#15, #16)
 - Merging main into a task branch no longer trips the test lock: tests that came unchanged from main are allowed. `CHANGELOG.md`, `CLAUDE.md` and `docs/` no longer count toward the 10-file limit. (#11, #14)
 - Retrying a stalled task now gives it a fresh round limit and budget. Before, a retried task that had used its rounds stalled again straight away. (#11)
