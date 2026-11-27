@@ -8,6 +8,16 @@ Start Game shows a polite live-region countdown (3, 2, 1). Keys are ignored unti
 `requestAnimationFrame` loop with an accumulator ticks at 5 per second (`src/lib/game/loop.ts`).
 W/A/S/D steer Player 1, arrow keys Player 2 (arrow keys call `preventDefault`). A snake that hits a wall or a snake stops. If both heads enter the same cell on one tick, both snakes stop. A stopped snake keeps blocking all its cells, including its tail.
 
+## Questions and answer tiles
+
+When gameplay begins, one question per player is generated from that player's topics and difficulty and shown
+under their name above the canvas (`QuestionPanel`). `placeAnswerTiles` (`src/lib/game/answers.ts`) puts the three
+options on random free cells reachable from the owner's head (flood fill; never on snakes, obstacles or other
+tiles). Tiles show the number, the owner's colour and "P1"/"P2". Driving over the other player's tile does nothing.
+If placement fails, `state.status` becomes `ended` and "Round over" is shown. Collecting your own tiles comes next.
+With `?seed=N`, questions and positions are repeatable. The test hook also carries `data-tiles`
+(JSON `{player,x,y,value}[]`) and `data-status` (`playing` or `ended`).
+
 ## Testing hook
 
 The element `data-testid="game"` carries read-only state: `data-phase` (`countdown` or `running`), `data-tick`,

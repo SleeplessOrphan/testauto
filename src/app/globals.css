@@ -6,7 +6,11 @@ button:hover { background: #2e7d32; }
 button:focus-visible { outline: 3px solid #ffeb3b; outline-offset: 2px; }
 .game-screen { max-width: none; padding: 0.5rem 1rem; text-align: center; }
 .game-names { display: flex; justify-content: space-between; margin: 0 auto 0.5rem; font-size: 1.25rem; font-weight: bold; gap: 1rem; width: min(100%, calc((100vh - 9rem) * 1.6)); }
-.game-names span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.question-panel { display: flex; flex-direction: column; min-width: 0; }
+.question-panel span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.question-panel:last-child { text-align: right; }
+.question-text { font-size: 1.1rem; }
+.round-over { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; font-size: 2rem; font-weight: bold; background: rgba(0,0,0,0.6); }
 .name-p1 { color: #42a5f5; }
 .name-p2 { color: #ff9800; }
 .game-board { position: relative; margin: 0 auto 0.5rem; width: min(100%, calc((100vh - 9rem) * 1.6)); aspect-ratio: 40 / 25; }

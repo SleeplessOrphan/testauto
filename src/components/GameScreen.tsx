@@ -9,16 +9,45 @@ import { parseSeed } from "@/lib/game/seed";
 import type { Direction, GameState, PlayerId } from "@/lib/game/types";
 import { CANVAS_HEIGHT, CANVAS_WIDTH, drawGame } from "@/lib/render/canvas";
 import type { GameSettings } from "@/lib/settings/types";
+import { generateQuestion } from "@/lib/maths/generate";
+import { placeAnswerTiles } from "@/lib/game/answers";
 import { Countdown } from "./Countdown";
+import { QuestionPanel } from "./QuestionPanel";
+
+/** Small seeded generator so `?seed=N` makes questions and tile positions repeatable. */
+function mulberry32(seed: number) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** One question per player, with their three answer tiles placed. Ends the round if placement fails. */
+function startRound(settings: GameSettings, seed: number | null) {
+  const rng = seed === null ? Math.random : mulberry32(seed);
+  let state = createInitialState();
+  const questions = settings.players.map((p) => generateQuestion(p.topics, p.difficulty, rng));
+  for (const player of [1, 2] as const) {
+    const placed = placeAnswerTiles(state, player, questions[player - 1].options, rng);
+    if (!placed.ok) return { state: { ...state, status: "ended" as const }, questions };
+    state = { ...state, tiles: [...(state.tiles ?? []), ...placed.tiles] };
+  }
+  return { state, questions };
+}
 
 const pt = (p: { x: number; y: number }) => p.x + "," + p.y;
 
 export function GameScreen({ settings, onBack }: { settings: GameSettings; onBack: () => void }) {
-  const [state, setState] = useState<GameState>(createInitialState);
+  const [seed] = useState(() => parseSeed(window.location.search));
+  const [round] = useState(() => startRound(settings, seed));
+  const [state, setState] = useState<GameState>(round.state);
   const [count, setCount] = useState<number | null>(3);
   const [ticks, setTicks] = useState(0);
-  const [seed] = useState(() => parseSeed(window.location.search));
-  const stateRef = useRef(state);
+  const stateRef = useRef(round.state);
   const runningRef = useRef(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -32,7 +61,7 @@ export function GameScreen({ settings, onBack }: { settings: GameSettings; onBac
   }, [count]);
 
   useEffect(() => {
-    if (count !== null) return;
+    if (count !== null || state.status === "ended") return;
     let raf = 0;
     let last = performance.now();
     let rest = 0;
@@ -51,7 +80,7 @@ export function GameScreen({ settings, onBack }: { settings: GameSettings; onBac
     };
     raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(raf);
-  }, [count]);
+  }, [count, state.status]);
 
   const onDirection = useCallback((player: PlayerId, direction: Direction) => {
     if (!runningRef.current) return;
@@ -72,6 +101,8 @@ export function GameScreen({ settings, onBack }: { settings: GameSettings; onBac
         data-phase={count === null ? "running" : "countdown"}
         data-tick={ticks}
         data-seed={seed ?? undefined}
+        data-tiles={JSON.stringify(state.tiles ?? [])}
+        data-status={state.status ?? "playing"}
         data-p1-head={pt(s1.segments[0])}
         data-p2-head={pt(s2.segments[0])}
         data-p1-length={s1.segments.length}
@@ -82,8 +113,8 @@ export function GameScreen({ settings, onBack }: { settings: GameSettings; onBac
         data-p2-segments={s2.segments.map(pt).join(";")}
       >
         <div className="game-names">
-          <span className="name-p1">{settings.players[0].name}</span>
-          <span className="name-p2">{settings.players[1].name}</span>
+          <QuestionPanel player={1} name={settings.players[0].name} question={round.questions[0].text} />
+          <QuestionPanel player={2} name={settings.players[1].name} question={round.questions[1].text} />
         </div>
         <div className="game-board">
           <canvas
@@ -94,6 +125,7 @@ export function GameScreen({ settings, onBack }: { settings: GameSettings; onBac
             aria-label="Game board"
           />
           <Countdown value={count} />
+          {state.status === "ended" && <p role="status" className="round-over">Round over</p>}
         </div>
       </div>
       <button type="button" onClick={onBack}>Back to menu</button>

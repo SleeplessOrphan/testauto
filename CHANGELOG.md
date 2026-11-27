@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Each player now sees their own maths question above the board, and three answer tiles (number, colour, P1/P2) are placed on free cells reachable from their head. If there is no room the round ends with "Round over". (#15)
 
 ### Fixed
 - Snakes whose heads enter the same cell now both stop, and a stopped snake's tail blocks the other snake. (#14)

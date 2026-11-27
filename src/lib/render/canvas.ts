@@ -26,6 +26,21 @@ export function drawGame(ctx: CanvasRenderingContext2D, state: GameState): void 
   }
   ctx.stroke();
 
+  for (const tile of state.tiles ?? []) {
+    const x = tile.x * CELL_PX;
+    const y = tile.y * CELL_PX;
+    ctx.fillStyle = COLOURS[tile.player];
+    ctx.fillRect(x + 1, y + 1, CELL_PX - 2, CELL_PX - 2);
+    ctx.fillStyle = '#000000';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    // Number on top, owner id below, so the tile is readable without relying on colour.
+    ctx.font = 'bold ' + CELL_PX * 0.42 + 'px system-ui, sans-serif';
+    ctx.fillText(String(tile.value), x + CELL_PX / 2, y + CELL_PX * 0.38, CELL_PX - 4);
+    ctx.font = 'bold ' + CELL_PX * 0.28 + 'px system-ui, sans-serif';
+    ctx.fillText('P' + tile.player, x + CELL_PX / 2, y + CELL_PX * 0.78);
+  }
+
   for (const snake of state.snakes) {
     ctx.fillStyle = COLOURS[snake.player];
     snake.segments.forEach((p, i) => {
