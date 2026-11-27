@@ -1,7 +1,6 @@
 # Changelog
 
 ## Unreleased
-- Pipeline: Sonnet roles run at medium effort (per-role `effort` in `models.yaml`), and the coder runs only its own task's e2e tests; CI still runs the full suite. See `docs/pipeline.md`.
 - Answer streaks: +20 bonus at 5 and 10 correct in a row, streak shown next to the score, longest streak tracked. (#17)
 - Scoring: +10 and growth for a correct answer, -5 and shrinking for an incorrect one, a new question next cycle, per-player score and feedback. See `docs/game-engine.md`. (#16)
 - Each player now sees their own maths question above the board, and three answer tiles (number, colour, P1/P2) are placed on free cells reachable from their head. If there is no room the round ends with "Round over". (#15)
@@ -30,6 +29,7 @@
 
 ### Changed
 - Per-task cap raised to $1.50.
+- Pipeline: Sonnet roles run at medium effort (per-role `effort` in `models.yaml`), and the coder runs only its own task's e2e tests; CI still runs the full suite. See `docs/pipeline.md`.
 - If main moves while a task is running, the pipeline merges main into the task branch and re-runs CI and review instead of stalling.
 - Extra pull_request runs that GitHub opens on agent PRs now skip, so approving one by hand can't block the merge.
 
