@@ -29,6 +29,20 @@ export interface AnswerTile {
   value: number;
 }
 
+export interface PlayerStats {
+  score: number;
+  correct: number;
+  incorrect: number;
+}
+
+/** Outcome of a player's latest collection; `seq` rises each time so the UI can tell events apart. */
+export interface AnswerResult {
+  seq: number;
+  correct: boolean;
+  /** The right answer to the question that was just answered. */
+  answer: number;
+}
+
 export interface GameState {
   snakes: Snake[];
   /** Blocked cells; none are placed yet. */
@@ -37,6 +51,13 @@ export interface GameState {
   collisions?: PlayerId[];
   /** Answer tiles currently on the board. */
   tiles?: AnswerTile[];
+  /** Current question text and answer per player; without an entry nothing is scored for that player. */
+  questions?: Partial<Record<PlayerId, { text: string; answer: number }>>;
+  stats?: Record<PlayerId, PlayerStats>;
+  /** Latest collection result per player, for feedback. */
+  results?: Partial<Record<PlayerId, AnswerResult>>;
+  /** Players whose tiles were collected; they get a new question next cycle. */
+  refresh?: PlayerId[];
   /** Set to 'ended' when the round is over. */
   status?: 'ended';
 }

@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Scoring: +10 and growth for a correct answer, -5 and shrinking for an incorrect one, a new question next cycle, per-player score and feedback. See `docs/game-engine.md`. (#16)
 - Each player now sees their own maths question above the board, and three answer tiles (number, colour, P1/P2) are placed on free cells reachable from their head. If there is no room the round ends with "Round over". (#15)
 
 ### Fixed
