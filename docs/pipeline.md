@@ -56,7 +56,7 @@ A stalled task gets the `stalled` label, a comment with the reason, and a mentio
 
 - **Pause everything:** open an issue (any title, e.g. "Pause") and add the label `pause`. Running steps finish and then wait. Close the issue to resume from where it stopped.
 - **Add a task by hand:** open an issue describing it with acceptance criteria and add the label `task`.
-- **Retry a stalled task:** remove `stalled` and add `queued`. It picks up where it stopped: if the tests and a PR exist, only CI runs again (no AI cost), and the adversary's approval is reused when the code hasn't changed. To start over from scratch on a fresh branch, also add `restart`.
+- **Retry a stalled task:** remove `stalled` and add `queued`. It picks up where it stopped: if the tests and a PR exist, only CI runs again (no AI cost), and the adversary's approval is reused when the code hasn't changed. Each retry gets a fresh allowance: the round limit and the per-task budget count again from the retry, so a retried task can spend up to the budget once more. To start over from scratch on a fresh branch, also add `restart`.
 - **Change a model or limit:** edit `models.yaml` in your own pull request.
 
 ## Why the checks are also commit statuses

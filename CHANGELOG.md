@@ -24,6 +24,7 @@
 - Extra pull_request runs that GitHub opens on agent PRs now skip, so approving one by hand can't block the merge.
 
 ### Fixed (pipeline)
+- Retrying a stalled task now gives it a fresh round limit and budget. Before, a retried task that had used its rounds stalled again straight away. (#11)
 - Staging waited 15 minutes for a GitHub Deployment that Vercel never creates for this project, then stalled the task. It now also accepts Vercel's commit status on the merged commit.
 - When the coder makes no changes because it thinks a test is wrong, the adversary now checks that test once instead of the task stalling straight away (task #11 stalled this way).
 - The commit statuses from the last fix were never posted on older task branches: dispatched runs used the branch's outdated workflow file, which had no permission to post them. `ci` and `adversary-review` now always run from main's workflow files and take the branch to check as an input.

@@ -26,7 +26,7 @@ clip() { sed 's/```/` ` `/g' "$1" | head -c 6000; }
 if [[ $phase == prepare ]]; then
   if labels_of "$n" | grep -qx stalled; then log "task is stalled"; skip; fi
   if over_budget "$n"; then
-    stall "$n" "spent \$$(task_cost "$n") of the \$$(cfg .limits.per_task_usd) per-task budget"
+    stall "$n" "spent \$$(spend_since_resume "$n") of the \$$(cfg .limits.per_task_usd) per-task budget"
     skip
   fi
   write_task
@@ -42,10 +42,11 @@ if [[ $phase == prepare ]]; then
     code)
       r=${ROUND:-1}
       max=$(cfg .limits.max_rounds)
-      if (( r > max + 1 )); then
+      b=$(resume_base "$n")
+      if (( r - b > max + 1 )); then
         stall "$n" "no approval after $max rounds and one escalation round"
         skip
-      elif (( r == max + 1 )); then
+      elif (( r - b == max + 1 )); then
         key=coder_escalation
       fi
       cp "$KIT/prompts/coder.md" .pipeline/instructions.md
