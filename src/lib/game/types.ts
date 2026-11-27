@@ -21,10 +21,22 @@ export interface Snake {
   growing?: boolean;
 }
 
+/** An answer option sitting on the board; only its owner may collect it. */
+export interface AnswerTile {
+  player: PlayerId;
+  x: number;
+  y: number;
+  value: number;
+}
+
 export interface GameState {
   snakes: Snake[];
   /** Blocked cells; none are placed yet. */
   obstacles?: Position[];
   /** Players that collided in the last step. */
   collisions?: PlayerId[];
+  /** Answer tiles currently on the board. */
+  tiles?: AnswerTile[];
+  /** Set to 'ended' when the round is over. */
+  status?: 'ended';
 }
