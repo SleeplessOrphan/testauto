@@ -4,6 +4,8 @@
 
 ### Added
 - Simultaneous collision detection (`src/lib/game/collision.ts`); `step()` reports collided players. See `docs/game-engine.md`. A head proposed onto the snake's own neck (a reversal) is not a self-collision. (#11)
+- Game setup screen with names, per-player difficulty and topics, validation and a placeholder game screen. See `docs/game-setup.md`. (#13)
+- Main menu with Play, Instructions and Settings screens replacing the starter page. (#12)
 - Combined the maths question code from tasks #8 and #9, which were built side by side and merged into each other's files. `generateQuestion` now serves the arithmetic topics plus percentages and mixed operations.
 - Snake movement engine on a 40 x 25 grid in `src/lib/game/`; see `docs/game-engine.md`.
 - Maths question generator (`src/lib/maths/`) with percentage and mixed-operation topics. See `docs/maths-questions.md`.
@@ -24,6 +26,9 @@
 - Extra pull_request runs that GitHub opens on agent PRs now skip, so approving one by hand can't block the merge.
 
 ### Fixed (pipeline)
+- Retrying a stalled task now gives it a fresh round limit and budget. Before, a retried task that had used its rounds stalled again straight away. (#11)
+- Staging waited 15 minutes for a GitHub Deployment that Vercel never creates for this project, then stalled the task. It now also accepts Vercel's commit status on the merged commit.
+- When the coder makes no changes because it thinks a test is wrong, the adversary now checks that test once instead of the task stalling straight away (task #11 stalled this way).
 - The commit statuses from the last fix were never posted on older task branches: dispatched runs used the branch's outdated workflow file, which had no permission to post them. `ci` and `adversary-review` now always run from main's workflow files and take the branch to check as an input.
 - Retrying a stalled task picks up where it stopped instead of paying for every AI stage again, and an adversary approval is reused when the task's changes are unchanged. Add the `restart` label to start over.
 - Agent PRs still couldn't merge: GitHub ignores check runs from `workflow_dispatch` runs for required checks. The pipeline now also reports each check result and the adversary's verdict as commit statuses, which count.

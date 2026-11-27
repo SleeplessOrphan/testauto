@@ -1,13 +1,14 @@
 import type { ReactNode } from "react";
+import "./globals.css";
 
 export const metadata = {
-  title: "testauto",
-  description: "An app built by the auto coding system from spec/app.md",
+  title: "Maths Snake",
+  description: "A two-player maths Snake game",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en-GB">
       <body>{children}</body>
     </html>
   );

@@ -26,7 +26,7 @@ clip() { sed 's/```/` ` `/g' "$1" | head -c 6000; }
 if [[ $phase == prepare ]]; then
   if labels_of "$n" | grep -qx stalled; then log "task is stalled"; skip; fi
   if over_budget "$n"; then
-    stall "$n" "spent \$$(task_cost "$n") of the \$$(cfg .limits.per_task_usd) per-task budget"
+    stall "$n" "spent \$$(spend_since_resume "$n") of the \$$(cfg .limits.per_task_usd) per-task budget"
     skip
   fi
   write_task
@@ -34,14 +34,19 @@ if [[ $phase == prepare ]]; then
   case $role in
     tests)
       cp "$KIT/prompts/adversary-tests.md" .pipeline/instructions.md
+      # A dispute: the coder says a test is wrong. Give the adversary the coder's notes and the CI feedback.
+      if (( $(markers "$n" dispute | wc -l) > $(markers "$n" dispute-answered | wc -l) )); then
+        { last_body_with "$n" "<!-- dispute:"; echo; last_body_with "$n" "<!-- feedback -->"; } > .pipeline/dispute.md
+      fi
       ;;
     code)
       r=${ROUND:-1}
       max=$(cfg .limits.max_rounds)
-      if (( r > max + 1 )); then
+      b=$(resume_base "$n")
+      if (( r - b > max + 1 )); then
         stall "$n" "no approval after $max rounds and one escalation round"
         skip
-      elif (( r == max + 1 )); then
+      elif (( r - b == max + 1 )); then
         key=coder_escalation
       fi
       cp "$KIT/prompts/coder.md" .pipeline/instructions.md
@@ -91,6 +96,16 @@ PROTECTED="${PROTECTED_RE%)}|tests/|\.pipeline/)"
 case $role in
   tests)
     keep_only '^tests/' ''
+    questions="None."
+    if [[ -f .pipeline/questions.md ]]; then questions=$(clip .pipeline/questions.md); fi
+    if [[ -f .pipeline/dispute.md ]] && git diff --cached --quiet; then
+      comment "$n" "⚖️ The adversary kept its tests unchanged:
+
+$questions
+<!-- cost:$cost --> <!-- dispute-answered -->"
+      stall "$n" "the coder and the adversary disagree about a test, so a person needs to decide (see the last two comments)"
+      exit 0
+    fi
     if git diff --cached --quiet; then
       comment "$n" "Adversary run wrote no tests. <!-- cost:$cost -->"
       stall "$n" "the adversary did not write any tests"
@@ -107,10 +122,23 @@ $(head -c 3000 <<<"$type_errors")
       stall "$n" "the adversary's tests don't type-check (see the comment above)"
       exit 0
     fi
+    if [[ -f .pipeline/dispute.md ]]; then
+      git commit -q -m "test: corrected tests for #$n after the coder's dispute (adversary)"
+      git push -q origin "HEAD:$branch"
+      r=$(last_round "$n"); r=${r:-1}
+      comment "$n" "⚖️ **The adversary corrected its tests** ($model, \$$cost). [Run]($run_url)
+
+$(git show --stat --format= HEAD | sed 's/^/    /')
+
+$questions
+<!-- cost:$cost --> <!-- dispute-answered -->
+<!-- tests-lock:$(tests_lock) -->"
+      set_stage "$n" code
+      dispatch coder.yml main "$n" "issue=$n" "round=$((r + 1))"
+      exit 0
+    fi
     git commit -q -m "test: acceptance tests for #$n (adversary)"
     git push -q origin "HEAD:$branch"
-    questions="None."
-    if [[ -f .pipeline/questions.md ]]; then questions=$(clip .pipeline/questions.md); fi
     comment "$n" "🧪 **Adversary wrote the tests** ($model, \$$cost). [Run]($run_url)
 
 $(git show --stat --format= HEAD | sed 's/^/    /')
@@ -128,6 +156,17 @@ $questions
     keep_only '.' "$PROTECTED"
     dropped=$(cat .pipeline/dropped.txt)
     if git diff --cached --quiet; then
+      # No changes but notes: usually the coder thinks a test is wrong. Ask the adversary to look at the
+      # test once (cheaper than more coder rounds); a second time, a human decides.
+      if [[ -f .pipeline/coder-notes.md && -z $(markers "$n" dispute) ]]; then
+        comment "$n" "⚖️ Coder round $r made no changes and says a test may be wrong. Asking the adversary to check its tests.
+
+$(clip .pipeline/coder-notes.md)
+<!-- cost:$cost --> <!-- coder-round:$r --> <!-- dispute:$r -->"
+        set_stage "$n" tests
+        dispatch adversary-tests.yml main "$n" "issue=$n"
+        exit 0
+      fi
       comment "$n" "Coder round $r made no changes. <!-- cost:$cost --> <!-- coder-round:$r -->"
       stall "$n" "the coder made no changes in round $r"
       exit 0

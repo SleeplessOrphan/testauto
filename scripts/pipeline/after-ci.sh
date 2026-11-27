@@ -70,9 +70,10 @@ prev_sig=$(last_marker "$n" ci-sig || true)
 r=$(last_round "$n"); r=${r:-1}
 next=$((r + 1))
 max=$(cfg .limits.max_rounds)
+b=$(resume_base "$n")
 repeat_note=""
-if [[ $sig == "$prev_sig" ]] && (( next <= max )); then
-  next=$((max + 1))
+if [[ $sig == "$prev_sig" ]] && (( next - b <= max )); then
+  next=$((b + max + 1))
   repeat_note=$'\n\nThe same checks failed the same way twice in a row, so the next round goes to the escalation model.'
 fi
 

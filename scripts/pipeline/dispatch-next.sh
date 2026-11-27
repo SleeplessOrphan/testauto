@@ -25,13 +25,14 @@ add_labels "$n" in-progress
 lock=$(last_marker "$n" tests-lock)
 if [[ $restart == false && -n $lock ]] && gh api "repos/$GH_REPO/branches/task/$n" >/dev/null 2>&1; then
   pr=$(pr_for_branch "task/$n")
+  r=$(last_round "$n"); r=${r:-0}
+  # resume-round resets the round limit and budget for this try (see resume_base in lib.sh).
   if [[ -n $pr ]]; then
-    comment "$n" "⏯️ Resumed with the existing tests and code in #$pr. Next: CI runs again; the adversary's approval is reused if the code hasn't changed."
+    comment "$n" "⏯️ Resumed with the existing tests and code in #$pr. Next: CI runs again; the adversary's approval is reused if the code hasn't changed. <!-- resume-round:$r -->"
     set_stage "$n" ci
     dispatch ci.yml "task/$n" "$n" "issue=$n"
   else
-    r=$(last_round "$n"); r=${r:-0}
-    comment "$n" "⏯️ Resumed with the adversary's existing tests. Next: coder round $((r + 1))."
+    comment "$n" "⏯️ Resumed with the adversary's existing tests. Next: coder round $((r + 1)). <!-- resume-round:$r -->"
     set_stage "$n" code
     dispatch coder.yml main "$n" "issue=$n" "round=$((r + 1))"
   fi

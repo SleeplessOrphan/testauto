@@ -20,7 +20,7 @@ Each task is a GitHub issue. Its labels show where it is: `queued`, then `in-pro
 | `stage:code` | `coder.yml` | The coder (Sonnet) makes the tests pass, updates `docs/` and `CHANGELOG.md`, and the pipeline opens or updates the pull request. | ci |
 | `stage:ci` | `ci.yml` | build, unit, e2e, docs-check, size-check, protected-files. Red sends feedback to the coder for another round. | review |
 | `stage:review` | `adversary-review.yml` | The adversary reviews the diff and probes the running app. It can add new failing tests. Its verdict is the `adversary-verdict` check. Approve merges the PR. | staging |
-| `stage:staging` | `staging.yml` | Waits for Vercel to deploy the merge, runs `tests/smoke` against it. Pass closes the task. Fail opens a revert PR, which is checked and merged automatically. | dispatcher |
+| `stage:staging` | `staging.yml` | Waits for Vercel to deploy the merge (a GitHub Deployment or Vercel's commit status on the merge commit), runs `tests/smoke` against it. Pass closes the task. Fail opens a revert PR, which is checked and merged automatically. | dispatcher |
 
 Workflows start each other with `workflow_dispatch`. That is deliberate: actions taken with the built-in
 `GITHUB_TOKEN` (pushes, PRs, merges) do not trigger other workflows, so each step starts the next one explicitly. `ci` and `adversary-review` are always started on main and told which branch to check, so they run with main's current settings even on a task branch made before a pipeline change.
@@ -37,6 +37,7 @@ Workflows start each other with `workflow_dispatch`. That is deliberate: actions
 | Fully documented | `docs-check` fails if `src/` changed without `docs/` or `CHANGELOG.md`. The adversary also reviews the docs. |
 | Tests are logged | Unit and Playwright runs upload JUnit XML, the Playwright report, traces and screenshots as artifacts (kept 30 days). A run with no log fails. Every agent run's cost and result is a comment on the task issue. |
 | Staging in order | One task runs at a time. Staging runs one at a time (`concurrency: staging`), in merge order, and the next task starts only after staging passes or the task stalls. |
+| Test disputes | If a coder round changes nothing and the coder's notes say a test is wrong, the adversary gets one chance to check that test against the spec. If it corrects the test, the coder carries on; if it keeps the test, the task stalls for you to decide. |
 | Bounded retries and spend | Up to 3 coder rounds on Sonnet, then one round on Opus, then stall. The same failures twice in a row skip straight to the Opus round. A task stalls once it has spent $1.50 (see `models.yaml`). Claude's turn limits cap each run; the Anthropic Console spend limit caps the month. |
 | Timeouts flag stops | Every job has `timeout-minutes`. The watchdog (hourly) stalls a task whose stage workflow failed, or that sat in a stage longer than `stage_minutes` with nothing running, and posts the last log lines. |
 
@@ -55,7 +56,7 @@ A stalled task gets the `stalled` label, a comment with the reason, and a mentio
 
 - **Pause everything:** open an issue (any title, e.g. "Pause") and add the label `pause`. Running steps finish and then wait. Close the issue to resume from where it stopped.
 - **Add a task by hand:** open an issue describing it with acceptance criteria and add the label `task`.
-- **Retry a stalled task:** remove `stalled` and add `queued`. It picks up where it stopped: if the tests and a PR exist, only CI runs again (no AI cost), and the adversary's approval is reused when the code hasn't changed. To start over from scratch on a fresh branch, also add `restart`.
+- **Retry a stalled task:** remove `stalled` and add `queued`. It picks up where it stopped: if the tests and a PR exist, only CI runs again (no AI cost), and the adversary's approval is reused when the code hasn't changed. Each retry gets a fresh allowance: the round limit and the per-task budget count again from the retry, so a retried task can spend up to the budget once more. To start over from scratch on a fresh branch, also add `restart`.
 - **Change a model or limit:** edit `models.yaml` in your own pull request.
 
 ## Why the checks are also commit statuses
