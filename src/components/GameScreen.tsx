@@ -57,16 +57,9 @@ function startRound(settings: GameSettings, seed: number | null) {
 /** How long the correct answer / praise stays in a player's feedback area. */
 const FEEDBACK_MS = 2000;
 
-const outcomeText = (end: ReturnType<typeof checkGameEnd>, s: GameSettings) =>
-  end.outcome === "win" && end.winner
-    ? `${s.players[end.winner - 1].name} wins!`
-    : end.outcome === "draw"
-      ? "It's a draw!"
-      : "Game over";
-
 const pt =(p: { x: number; y: number }) => p.x + "," + p.y;
 
-export function GameScreen({ settings, onBack }: { settings: GameSettings; onBack: () => void }) {
+export function GameScreen({ settings, onBack, onFinish }: { settings: GameSettings; onBack: () => void; onFinish: (state: GameState) => void }) {
   const [seed] = useState(() => parseSeed(window.location.search));
   const [round] = useState(() => startRound(settings, seed));
   const mode = settings.mode;
@@ -92,7 +85,9 @@ export function GameScreen({ settings, onBack }: { settings: GameSettings; onBac
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // The setup form is taller than the window, so the page may arrive scrolled.
-  useEffect(() => window.scrollTo(0, 0), []);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   useEffect(() => {
     if (count === null) {
@@ -190,6 +185,12 @@ export function GameScreen({ settings, onBack }: { settings: GameSettings; onBac
     return () => Object.values(timers).forEach(clearTimeout);
   }, []);
 
+  // Hand the final state to the parent, which swaps this screen for the results.
+  const finished = ended || state.status === "ended";
+  useEffect(() => {
+    if (finished) onFinish(stateRef.current);
+  }, [finished, onFinish]);
+
   // An eliminated player's snake is gone, so look snakes up by player.
   const s1 = state.snakes.find((s) => s.player === 1);
   const s2 = state.snakes.find((s) => s.player === 2);
@@ -255,8 +256,6 @@ export function GameScreen({ settings, onBack }: { settings: GameSettings; onBac
             aria-label="Game board"
           />
           <Countdown value={count} />
-          {ended && <p role="status" className="round-over">{outcomeText(checkGameEnd(state, mode), settings)}</p>}
-          {!ended && state.status === "ended" && <p role="status" className="round-over">Round over</p>}
         </div>
       </div>
       <button type="button" onClick={onBack}>Back to menu</button>
