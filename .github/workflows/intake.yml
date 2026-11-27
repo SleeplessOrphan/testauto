@@ -28,7 +28,7 @@ jobs:
           # Give label edits made together (removing `stalled`, adding `restart`) a moment to land, so the
           # dispatcher sees all of them, not just the first.
           sleep 20
-          gh workflow run dispatcher.yml --ref main
+          gh workflow run dispatcher.yml --ref "${{ github.ref_name }}"
 
   resume:
     if: >-
@@ -42,6 +42,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.ref_name }}
           persist-credentials: false
       - run: bash scripts/pipeline/resume.sh

@@ -47,7 +47,7 @@ fail() { # reason [log]
     --body "Automatic revert: $1. [Run]($run_url)
 <!-- revert-of:$sha -->")
   stall "$n" "merged as ${short} but failed on staging ($1). Revert PR #${pr_url##*/} is on its way in." "${2:-}"
-  gh workflow run ci.yml --ref main -f "branch=revert/$short" -f "issue=$n"
+  gh workflow run ci.yml --ref "$PIPELINE_REF" -f "branch=revert/$short" -f "issue=$n"
   exit 1
 }
 
@@ -75,7 +75,7 @@ cat "$RUNNER_TEMP/smoke.log"
 
 if [[ $mode == revert ]]; then
   alert "Staging is healthy again after the revert. Task #$n stays stalled until you re-queue it."
-  dispatch dispatcher.yml main ""
+  dispatch dispatcher.yml "$PIPELINE_REF" ""
   exit 0
 fi
 if [[ -n $n ]]; then
@@ -87,4 +87,4 @@ if [[ -n $n ]]; then
     alert "🎉 Task #$n was the last one: every planned task is done and live on staging ($target). This month's AI spend so far: \$$(month_spend)."
   fi
 fi
-dispatch dispatcher.yml main ""
+dispatch dispatcher.yml "$PIPELINE_REF" ""

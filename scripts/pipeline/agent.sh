@@ -79,8 +79,12 @@ if [[ $phase == prepare ]]; then
       fi
       ;;
   esac
+  problem=$(provider_problem "$key")
+  if [[ -n $problem ]]; then stall "$n" "$problem"; skip; fi
   out "skip=false"
   out "role_key=$key"
+  out "provider=$(provider_of "$key")"
+  out "effort=$(cfg ".roles.$key.effort // \"\"")"
   out "model=$(cfg ".roles.$key.model")"
   out "max_turns=$(cfg ".roles.$key.max_turns")"
   # Passed straight into claude_args, so it is empty when the role sets no effort.
@@ -137,7 +141,7 @@ $questions
 <!-- cost:$cost --> <!-- dispute-answered -->
 <!-- tests-lock:$(tests_lock) -->"
       set_stage "$n" code
-      dispatch coder.yml main "$n" "issue=$n" "round=$((r + 1))"
+      dispatch coder.yml "$PIPELINE_REF" "$n" "issue=$n" "round=$((r + 1))"
       exit 0
     fi
     git commit -q -m "test: acceptance tests for #$n (adversary)"
@@ -151,7 +155,7 @@ $questions
 <!-- cost:$cost -->
 <!-- tests-lock:$(tests_lock) -->"
     set_stage "$n" code
-    dispatch coder.yml main "$n" "issue=$n" "round=1"
+    dispatch coder.yml "$PIPELINE_REF" "$n" "issue=$n" "round=1"
     ;;
 
   code)
@@ -167,7 +171,7 @@ $questions
 $(clip .pipeline/coder-notes.md)
 <!-- cost:$cost --> <!-- coder-round:$r --> <!-- dispute:$r -->"
         set_stage "$n" tests
-        dispatch adversary-tests.yml main "$n" "issue=$n"
+        dispatch adversary-tests.yml "$PIPELINE_REF" "$n" "issue=$n"
         exit 0
       fi
       # The adversary just corrected a disputed test and the code was already right: nothing to change,

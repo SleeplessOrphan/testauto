@@ -29,20 +29,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { ref: "task/${{ inputs.issue }}", fetch-depth: 0, persist-credentials: false }
-      - name: Copy the pipeline kit from main, out of the agent's reach
+      - name: Copy the pipeline kit from this workflow's branch, out of the agent's reach
         run: |
-          git fetch -q origin main
+          git fetch -q origin main "${{ github.ref_name }}"
           mkdir -p "$RUNNER_TEMP/kit"
-          git archive origin/main scripts models.yaml prompts | tar -x -C "$RUNNER_TEMP/kit"
+          git archive "origin/${{ github.ref_name }}" scripts models.yaml prompts | tar -x -C "$RUNNER_TEMP/kit"
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci
       - uses: ./.github/actions/setup-playwright
       - id: prep
-        env: { GH_TOKEN: "${{ github.token }}" }
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OPENAI_KEY_SET: ${{ secrets.OPENAI_API_KEY != '' }}
+          GOOGLE_KEY_SET: ${{ secrets.GOOGLE_API_KEY != '' }}
         run: bash "$RUNNER_TEMP/kit/scripts/pipeline/agent.sh" code prepare
       - id: claude
-        if: steps.prep.outputs.skip != 'true'
+        if: steps.prep.outputs.skip != 'true' && steps.prep.outputs.provider == 'anthropic'
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -56,12 +59,33 @@ jobs:
             --max-turns ${{ steps.prep.outputs.max_turns }}
             ${{ steps.prep.outputs.effort_arg }}
             --allowedTools "Read,Write,Edit,Glob,Grep,Bash(npx tsc:*),Bash(npx vitest run:*),Bash(npx next build:*),Bash(npx playwright test:*),Bash(npm install:*),Bash(npm ci:*)"
+      # OpenAI and Google roles run their own coding CLI instead (see docs/providers.md). Only the key for
+      # the role's provider is passed in, and never the GitHub token.
+      - id: other
+        if: steps.prep.outputs.skip != 'true' && steps.prep.outputs.provider != 'anthropic'
+        env:
+          PROVIDER: ${{ steps.prep.outputs.provider }}
+          MODEL: ${{ steps.prep.outputs.model }}
+          EFFORT: ${{ steps.prep.outputs.effort }}
+          MAX_TURNS: ${{ steps.prep.outputs.max_turns }}
+          AGENT_MINUTES: "35"
+          ALLOWED: "npx tsc, npx vitest run, npx next build, npx playwright test, npm install, npm ci"
+          CODEX_API_KEY: ${{ steps.prep.outputs.provider == 'openai' && secrets.OPENAI_API_KEY || '' }}
+          GEMINI_API_KEY: ${{ steps.prep.outputs.provider == 'google' && secrets.GOOGLE_API_KEY || '' }}
+        run: |
+          bash "$RUNNER_TEMP/kit/scripts/pipeline/run-agent.sh" "Your instructions are in .pipeline/instructions.md and the task is in .pipeline/task.md. If .pipeline/feedback.md exists, it explains why the last round was rejected. Follow the instructions exactly."
+      - name: Copy the pipeline kit again, in case the agent changed it
+        if: steps.other.outcome != 'skipped' && !cancelled()
+        run: |
+          rm -rf "$RUNNER_TEMP/kit" && mkdir -p "$RUNNER_TEMP/kit"
+          git -c core.hooksPath=/dev/null fetch -q "https://github.com/${{ github.repository }}" "${{ github.ref_name }}"
+          git archive FETCH_HEAD scripts models.yaml prompts | tar -x -C "$RUNNER_TEMP/kit"
       - name: Commit, open the PR and start CI
         if: steps.prep.outputs.skip != 'true' && !cancelled()
         env:
           GH_TOKEN: ${{ github.token }}
           MODEL: ${{ steps.prep.outputs.model }}
-        run: bash "$RUNNER_TEMP/kit/scripts/pipeline/agent.sh" code finish "${{ steps.claude.outputs.execution_file }}"
+        run: bash "$RUNNER_TEMP/kit/scripts/pipeline/agent.sh" code finish "${{ steps.claude.outputs.execution_file || steps.other.outputs.execution_file }}"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -69,5 +93,6 @@ jobs:
           path: |
             .pipeline/
             ${{ steps.claude.outputs.execution_file }}
+            ${{ runner.temp }}/agent-run/
           include-hidden-files: true
           if-no-files-found: ignore

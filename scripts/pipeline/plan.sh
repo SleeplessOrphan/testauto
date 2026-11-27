@@ -49,11 +49,15 @@ case "$1" in
     for l in queued in-progress stalled done task; do
       gh issue list --state all --label "$l" --limit 300 --json number,title,state,body
     done | jq -s 'add | unique_by(.number)' > .pipeline/existing-issues.json
+    problem=$(provider_problem planner)
+    if [[ -n $problem ]]; then alert "The planner did not run: $problem."; out "skip=true"; exit 0; fi
     cp "$KIT/prompts/planner.md" .pipeline/instructions.md
     out "skip=false"
     out "reuse=false"
     out "model=$(cfg .roles.planner.model)"
     out "max_turns=$(cfg .roles.planner.max_turns)"
+    out "provider=$(provider_of planner)"
+    out "effort=$(cfg '.roles.planner.effort // ""')"
     ;;
 
   publish)
@@ -91,7 +95,7 @@ case "$1" in
 
 Assumptions it made where the spec was unclear:
 $assumptions}"
-      dispatch dispatcher.yml main ""
+      dispatch dispatcher.yml "$PIPELINE_REF" ""
     else
       log "planner found nothing new to do"
     fi

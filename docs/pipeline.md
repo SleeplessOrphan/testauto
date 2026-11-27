@@ -23,7 +23,7 @@ Each task is a GitHub issue. Its labels show where it is: `queued`, then `in-pro
 | `stage:staging` | `staging.yml` | Waits for Vercel to deploy the merge (a GitHub Deployment or Vercel's commit status on the merge commit), runs `tests/smoke` against it. Pass closes the task. Fail opens a revert PR, which is checked and merged automatically. | dispatcher |
 
 Workflows start each other with `workflow_dispatch`. That is deliberate: actions taken with the built-in
-`GITHUB_TOKEN` (pushes, PRs, merges) do not trigger other workflows, so each step starts the next one explicitly. `ci` and `adversary-review` are always started on main and told which branch to check, so they run with main's current settings even on a task branch made before a pipeline change.
+`GITHUB_TOKEN` (pushes, PRs, merges) do not trigger other workflows, so each step starts the next one explicitly. `ci` and `adversary-review` are always started on the pipeline's own branch (`main`, or `open-pipeline` when it runs from there) and told which branch to check, so they run with the current settings even on a task branch made before a pipeline change. Each stage starts the next on the branch it runs from, and the scripts each workflow runs are copied from that branch. The app is always built from and merged into `main`.
 
 ## The guardrails
 
@@ -32,7 +32,7 @@ Workflows start each other with `workflow_dispatch`. That is deliberate: actions
 | Tests must be sound | After the adversary writes the tests, the pipeline type-checks them. Errors other than missing code the task will add (including implicit `any` that comes from that missing code) stop the task, so the coder is never pushed to weaken a check to get past them. The review treats any weakened check as a blocker. |
 | Agents can't mark their own work as passing | Agents only edit files. Shell steps commit, open PRs and merge. The merge only happens after the `adversary-verdict` job passes, and the ruleset on main makes GitHub refuse it unless every required check is green. |
 | The coder can't change the tests | Changes the coder makes under `tests/` are thrown away before committing, and `protected-files` fails if `tests/` differs from the adversary's last lock. Tests that arrive unchanged from main, when main is merged into the branch, are allowed. |
-| Agents can't change the rules | Changes to `.github/`, `scripts/`, `prompts/`, `spec/`, `models.yaml`, the test configs and the configs that decide what is type-checked and built (`tsconfig*.json`, `next.config.*`, `vercel.json`) are thrown away, and `protected-files` fails if any slip through. The scripts each workflow runs are copied from main before the agent starts. |
+| Agents can't change the rules | Changes to `.github/`, `scripts/`, `prompts/`, `spec/`, `models.yaml`, the test configs and the configs that decide what is type-checked and built (`tsconfig*.json`, `next.config.*`, `vercel.json`) are thrown away, and `protected-files` fails if any slip through. The scripts each workflow runs are copied from the pipeline branch before the agent starts, and copied again after an OpenAI or Google agent finishes. `.codex/` and `.gemini/` are protected too, so an agent can't leave settings for the next run. |
 | Small changes | `size-check` fails task PRs over 300 changed lines or 10 files (tests and the lockfile don't count; `CHANGELOG.md`, `CLAUDE.md` and `docs/` count toward lines but not files). That stalls the task so it can be split. |
 | Fully documented | `docs-check` fails if `src/` changed without `docs/` or `CHANGELOG.md`. The adversary also reviews the docs. |
 | Tests are logged | Unit and Playwright runs upload JUnit XML, the Playwright report, traces and screenshots as artifacts (kept 30 days). A run with no log fails. Every agent run's cost and result is a comment on the task issue. |
@@ -62,6 +62,7 @@ one is retried (remove `stalled`, add `queued`) or closed, so later tasks never 
 - **Add a task by hand:** open an issue describing it with acceptance criteria and add the label `task`.
 - **Retry a stalled task:** remove `stalled` and add `queued`. Adding `queued` starts the dispatcher straight away. It picks up where it stopped: if the tests and a PR exist, only CI runs again (no AI cost), and the adversary's approval is reused when the code hasn't changed. Each retry gets a fresh allowance: the round limit and the per-task budget count again from the retry, so a retried task can spend up to the budget once more. If the task was already merged and only staging failed to confirm it (for example Vercel never reported the deploy), the retry just runs the staging check again. To start over from scratch on a fresh branch, also add `restart`. The label changes can be made in any order: the dispatcher waits 20 seconds after `queued` is added, and a task that is both `stalled` and `queued` counts as being retried.
 - **Change a model, effort or limit:** edit `models.yaml` in your own pull request.
+- **Use OpenAI or Google models:** on the `open-pipeline` branch, set a role's `provider` to `openai` or `google`. See [providers.md](providers.md) for the keys, prices and how to run from that branch.
 
 ## Why the checks are also commit statuses
 
@@ -84,9 +85,9 @@ pushed by the repository owner, so you can merge your own changes (for example, 
 
 ## Known limits in iteration one
 
-- Only Anthropic models: every agent runs through `anthropics/claude-code-action`. The `provider` field in `models.yaml` is for iteration two's gateway.
+- On `main`, only Anthropic models: every agent runs through `anthropics/claude-code-action`. The `open-pipeline` branch adds OpenAI (Codex CLI) and Google (Gemini CLI) per role; see [providers.md](providers.md).
 - The coder and adversary both act through the same GitHub Actions identity. They are kept apart by what each step is allowed to change, not by separate GitHub Apps.
-- No weekly spend report yet. Per-task cost is on each issue and the total is in the Anthropic Console. When the last task finishes, the alerts issue gets an "all done" note with the month's spend.
+- No weekly spend report yet. Per-task cost is on each issue (for every provider) and the totals are in each provider's billing page. When the last task finishes, the alerts issue gets an "all done" note with the month's spend.
 - Vercel builds only `main` (see `git.deploymentEnabled` in `vercel.json`), not the `task/*` and `revert/*` branches, which keeps well under the Hobby plan's daily deployment limit.
 - If an agent run hits its job timeout, its cost is not recorded on the issue, so the per-task and monthly totals can undercount. The Console total is the true figure.
 - The watchdog runs hourly to stay inside the free Actions minutes; change the cron in `watchdog.yml` if you have more minutes.

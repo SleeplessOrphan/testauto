@@ -9,6 +9,10 @@ KIT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"   # folder that holds 
 CFG="$KIT/models.yaml"
 BOT="github-actions[bot]"
 STAGES=(tests code ci review staging)
+# The branch whose pipeline files (workflows, scripts, prompts, models.yaml) this run uses. Each stage starts
+# the next on the same branch, so a run started on `open-pipeline` stays on it. The app itself is always
+# built from and merged into main.
+PIPELINE_REF="${PIPELINE_REF:-${GITHUB_REF_NAME:-main}}"
 
 cfg() { yq -r "$1" "$CFG"; }
 
@@ -42,7 +46,7 @@ add_labels() { local n=$1 l; shift; for l in "$@"; do gh issue edit "$n" --add-l
 
 # Files no agent may change: the pipeline itself, the spec, and every config that decides what the
 # type check, build and test runs cover (so the coder can't weaken a check instead of fixing the code).
-PROTECTED_RE='^(\.github/|scripts/|prompts/|spec/|models\.yaml$|playwright\.config\.ts$|vitest\.config\.ts$|tsconfig[^/]*\.json$|next\.config\.[a-z]+$|vercel\.json$|\.gitattributes$)'
+PROTECTED_RE='^(\.github/|\.codex/|\.gemini/|scripts/|prompts/|spec/|models\.yaml$|playwright\.config\.ts$|vitest\.config\.ts$|tsconfig[^/]*\.json$|next\.config\.[a-z]+$|vercel\.json$|\.gitattributes$)'
 
 set_stage() { # issue stage
   local n=$1 s=$2 rm=() x
@@ -105,11 +109,31 @@ change_hash() { git diff "$(git merge-base origin/main HEAD)" HEAD | sha256sum |
 
 last_round() { last_marker "$1" coder-round || true; }
 
-# Cost of one claude-code-action run, read from its execution file.
+# Cost of one agent run, read from its execution file. claude-code-action writes this file itself; for other
+# providers run-agent.sh writes the same shape, with the cost worked out from the token counts and `prices`.
 run_cost() {
   local f=${1:-}
   [[ -n $f && -f $f ]] || { echo 0; return; }
   jq -r '[.[]? | select(.type=="result") | .total_cost_usd // 0] | last // 0' "$f" 2>/dev/null || echo 0
+}
+
+# Provider of a role in models.yaml (anthropic when unset).
+provider_of() { cfg ".roles.$1.provider // \"anthropic\""; }
+
+# Why a role can't run on its provider (no price or no API key), or nothing. Needs OPENAI_KEY_SET and
+# GOOGLE_KEY_SET (true/false) from the workflow, which can't pass the keys themselves to this step.
+provider_problem() { # role-key
+  local p m
+  p=$(provider_of "$1"); m=$(cfg ".roles.$1.model")
+  case $p in
+    anthropic) return 0 ;;
+    openai) [[ ${OPENAI_KEY_SET:-} == true ]] || { echo "role $1 uses OpenAI but the OPENAI_API_KEY secret is not set (see docs/providers.md)"; return 0; } ;;
+    google) [[ ${GOOGLE_KEY_SET:-} == true ]] || { echo "role $1 uses Google but the GOOGLE_API_KEY secret is not set (see docs/providers.md)"; return 0; } ;;
+    *) echo "role $1 has unknown provider '$p' (use anthropic, openai or google)"; return 0 ;;
+  esac
+  if [[ $(cfg ".prices[\"$m\"] | length") != 3 ]]; then
+    echo "model $m has no price in models.yaml (prices), so its spend could not be counted towards the budget"
+  fi
 }
 
 paused() { [[ -n $(gh issue list --label pause --state open --json number -q '.[0].number // empty') ]]; }
@@ -153,9 +177,9 @@ dispatch() { # workflow ref issue-or-empty key=value...
     log "paused: not starting $wf"
     return 0
   fi
-  # CI and review always run from main's workflow files, so a task branch made before a pipeline change can't
-  # run with outdated settings or permissions; the branch to check is passed as an input instead.
-  if [[ $wf =~ ^(ci|adversary-review)\.yml$ && $ref != main ]]; then args+=(-f "branch=$ref"); ref=main; fi
+  # CI and review always run from the pipeline branch's workflow files, so a task branch made before a pipeline
+  # change can't run with outdated settings or permissions; the branch to check is passed as an input instead.
+  if [[ $wf =~ ^(ci|adversary-review)\.yml$ && $ref != "$PIPELINE_REF" ]]; then args+=(-f "branch=$ref"); ref=$PIPELINE_REF; fi
   gh workflow run "$wf" --ref "$ref" "${args[@]}"
   log "started $wf on $ref $*"
 }
@@ -171,7 +195,7 @@ stall() { # issue reason [log-lines]
   body+=$'\n\nTo retry, remove the `stalled` label and add `queued`: it picks up where it stopped. To start over from scratch, also add `restart`.'
   comment "$n" "$body"
   alert "Task #$n stalled: $reason"
-  dispatch dispatcher.yml main ""
+  dispatch dispatcher.yml "$PIPELINE_REF" ""
 }
 
 # Fingerprint of every file under tests/, so CI can tell whether anyone but the adversary changed them.

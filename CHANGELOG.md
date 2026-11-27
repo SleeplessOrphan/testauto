@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Pipeline (open-pipeline branch): each role can run on OpenAI (Codex CLI) or Google (Gemini CLI) as well as Anthropic, with per-provider cost counted towards the per-task and monthly caps; the pipeline runs from whichever branch it was started on. Defaults stay all-Claude. See `docs/providers.md`.
 - Preferences (setup and sound) saved in localStorage and restored on load; Reset Settings button; app works when storage is unavailable. (#27)
 - Sound effects setting (default on) with four Web Audio sounds (correct, incorrect, collision, streak); test hooks `data-sound-log` and `data-last-sound`. (#26)
 - Arcade theme (CSS variables, system fonts), snake body patterns, per-player feedback markers (`data-feedback`), collision outline and reduced-motion support (`data-reduced-motion`). (#25)
