@@ -15,8 +15,14 @@ export interface Snake {
   direction: Direction;
   /** Direction that will be travelled in the next cycle. */
   pendingDirection: Direction;
+  /** True when the tail stays put this cycle, so its cell is not vacated. */
+  growing?: boolean;
 }
 
 export interface GameState {
   snakes: Snake[];
+  /** Blocked cells; none are placed yet. */
+  obstacles?: Position[];
+  /** Players that collided in the last step. */
+  collisions?: PlayerId[];
 }

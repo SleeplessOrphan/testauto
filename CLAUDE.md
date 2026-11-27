@@ -24,7 +24,7 @@ correct answers to maths questions. Built autonomously, one small task at a time
 | `src/app/api/health/route.ts` | Health check used by the staging smoke test. Keep it. |
 | `src/components/` | React screens: `MainMenu` switches between menu, setup, instructions and settings. |
 | `src/lib/` | Plain TypeScript logic (game rules, question generation). Keep it free of React so it is unit-testable. |
-| `src/lib/game/` | Game engine: grid constants, types, initial state, movement (`step`, `queueDirection`), key mapping. |
+| `src/lib/game/` | Game engine: grid constants, types, initial state, movement (`step`, `queueDirection`), collision (`resolveCollisions`), key mapping. |
 | `src/lib/settings/` | `GameSettings` types, setup defaults and validation (`buildSettings`). |
 | `src/lib/maths/` | Question generation: `generate.ts` entry point, `topics/` per-topic generators, `distractors.ts`, `random.ts`. |
 | `tests/unit/` | Vitest tests, `*.test.ts`. |

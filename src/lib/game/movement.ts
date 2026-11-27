@@ -1,3 +1,4 @@
+import { resolveCollisions } from './collision';
 import type { Direction, GameState, PlayerId, Position } from './types';
 
 const DELTAS: Record<Direction, Position> = {
@@ -27,16 +28,24 @@ export function queueDirection(state: GameState, player: PlayerId, direction: Di
 }
 
 export function step(state: GameState): GameState {
+  const heads = {} as Record<PlayerId, Position>;
+  for (const s of state.snakes) {
+    const d = DELTAS[s.pendingDirection];
+    heads[s.player] = { x: s.segments[0].x + d.x, y: s.segments[0].y + d.y };
+  }
+  const collisions = resolveCollisions(state, heads);
+
   return {
     ...state,
-    snakes: state.snakes.map((s) => {
-      const d = DELTAS[s.pendingDirection];
-      const head = { x: s.segments[0].x + d.x, y: s.segments[0].y + d.y };
-      return {
-        ...s,
-        direction: s.pendingDirection,
-        segments: [head, ...s.segments.slice(0, -1)],
-      };
-    }),
+    collisions,
+    snakes: state.snakes.map((s) =>
+      collisions.includes(s.player)
+        ? s
+        : {
+            ...s,
+            direction: s.pendingDirection,
+            segments: [heads[s.player], ...(s.growing ? s.segments : s.segments.slice(0, -1))],
+          },
+    ),
   };
 }
