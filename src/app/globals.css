@@ -1,0 +1,6 @@
+body { margin: 0; font-family: system-ui, sans-serif; background: #10261a; color: #f5f5f5; }
+main { max-width: 40rem; margin: 0 auto; padding: 2rem 1rem; }
+.menu { display: flex; flex-direction: column; gap: 1rem; max-width: 20rem; }
+button { font: inherit; font-size: 1.25rem; padding: 0.75rem 1rem; border: 2px solid #f5f5f5; border-radius: 0.5rem; background: #1b5e20; color: #fff; cursor: pointer; }
+button:hover { background: #2e7d32; }
+button:focus-visible { outline: 3px solid #ffeb3b; outline-offset: 2px; }

@@ -1,7 +1,10 @@
-# Homepage
+# Main menu
 
-`index.html` at the repository root is the site homepage. It displays a single
-heading that says "Hello".
+`/` shows the Maths Snake main menu (`src/components/MainMenu.tsx`): the level-1 heading
+"Maths Snake" and three buttons, Play, Instructions and Settings. Screens switch with client-side
+state, and every screen has a Back button.
 
-To view it, open `index.html` in a browser or serve the repository root with any
-static file server (for example `python3 -m http.server`).
+- Play: placeholder "Game setup" screen (filled in by a later task).
+- Instructions: rules (own answer, scoring, lives, game modes) and keyboard controls
+  (Player 1: W, A, S, D; Player 2: arrow keys; Escape: pause).
+- Settings: placeholder screen (sound and Reset Settings come later).
