@@ -50,7 +50,7 @@ export function MainMenu() {
     return (
       <>
         <div hidden={screen === "results"}>
-          <GameScreen key={gameKey} settings={settings} onBack={back} onFinish={onFinish} />
+          <GameScreen key={gameKey} settings={settings} onBack={back} onFinish={onFinish} onRestart={() => setGameKey((k) => k + 1)} />
         </div>
         {screen === "results" && final && (
           <ResultsScreen

@@ -17,6 +17,7 @@ import { CORRECT_POINTS, EMPTY_STATS, applyRefresh } from "@/lib/game/scoring";
 import { checkGameEnd } from "@/lib/game/modes";
 import { Countdown } from "./Countdown";
 import { GameTimer } from "./GameTimer";
+import { PauseMenu } from "./PauseMenu";
 import { PlayerPanel } from "./PlayerPanel";
 
 /** Small seeded generator so `?seed=N` makes questions and tile positions repeatable. */
@@ -59,7 +60,7 @@ const FEEDBACK_MS = 2000;
 
 const pt =(p: { x: number; y: number }) => p.x + "," + p.y;
 
-export function GameScreen({ settings, onBack, onFinish }: { settings: GameSettings; onBack: () => void; onFinish: (state: GameState) => void }) {
+export function GameScreen({ settings, onBack, onFinish, onRestart }: { settings: GameSettings; onBack: () => void; onFinish: (state: GameState) => void; onRestart: () => void }) {
   const [seed] = useState(() => parseSeed(window.location.search));
   const [round] = useState(() => startRound(settings, seed));
   const mode = settings.mode;
@@ -73,6 +74,7 @@ export function GameScreen({ settings, onBack, onFinish }: { settings: GameSetti
   });
   const [ended, setEnded] = useState(false);
   const [count, setCount] = useState<number | null>(3);
+  const [paused, setPaused] = useState(false);
   const tickRate = GAMEPLAY_LEVELS[settings.gameplay].cellsPerSecond;
   const [ticks, setTicks] = useState(0);
   const stateRef = useRef(state);
@@ -91,15 +93,15 @@ export function GameScreen({ settings, onBack, onFinish }: { settings: GameSetti
 
   useEffect(() => {
     if (count === null) {
-      runningRef.current = true;
+      runningRef.current = !paused;
       return;
     }
     const id = setTimeout(() => setCount(count === 1 ? null : count - 1), 1000);
     return () => clearTimeout(id);
-  }, [count]);
+  }, [count, paused]);
 
   useEffect(() => {
-    if (count !== null || state.status === "ended" || ended) return;
+    if (count !== null || paused || state.status === "ended" || ended) return;
     let raf = 0;
     let last = performance.now();
     let rest = 0;
@@ -143,13 +145,32 @@ export function GameScreen({ settings, onBack, onFinish }: { settings: GameSetti
     };
     raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(raf);
-  }, [count, state.status, ended, settings.players, tickRate, mode, timeScale]);
+  }, [count, paused, state.status, ended, settings.players, tickRate, mode, timeScale]);
 
   const onDirection = useCallback((player: PlayerId, direction: Direction) => {
     if (!runningRef.current) return;
     stateRef.current = queueDirection(stateRef.current, player, direction);
   }, []);
   useKeyboard(onDirection);
+
+  // Only a running game pauses. Blur and hidden tabs pause too so nobody loses time.
+  useEffect(() => {
+    const pause = () => {
+      if (!runningRef.current) return;
+      runningRef.current = false;
+      setPaused(true);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && pause();
+    const onVisibility = () => document.visibilityState === "hidden" && pause();
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("blur", pause);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("blur", pause);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, []);
 
   useEffect(() => {
     const ctx = canvasRef.current?.getContext("2d");
@@ -205,7 +226,7 @@ export function GameScreen({ settings, onBack, onFinish }: { settings: GameSetti
     <main className="game-screen">
       <div
         data-testid="game"
-        data-phase={ended ? "ended" : count === null ? "running" : "countdown"}
+        data-phase={ended ? "ended" : paused ? "paused" : count === null ? "running" : "countdown"}
         data-tick={ticks}
         data-seed={seed ?? undefined}
         data-tick-rate={tickRate}
@@ -257,6 +278,18 @@ export function GameScreen({ settings, onBack, onFinish }: { settings: GameSetti
           />
           <Countdown value={count} />
         </div>
+        {paused && !ended && (
+          <PauseMenu
+            practice={mode.kind === "practice"}
+            onResume={() => {
+              setPaused(false);
+              setCount(3);
+            }}
+            onRestart={onRestart}
+            onExit={onBack}
+            onEndGame={() => setEnded(true)}
+          />
+        )}
       </div>
       <button type="button" onClick={onBack}>Back to menu</button>
     </main>

@@ -18,4 +18,5 @@ button:focus-visible { outline: 3px solid #ffeb3b; outline-offset: 2px; }
 .name-p2 { color: #ff9800; }
 .game-board { position: relative; margin: 0 auto 0.5rem; width: min(100%, calc((100vh - 15rem) * 1.6)); aspect-ratio: 40 / 25; }
 .game-board canvas { display: block; width: 100%; height: 100%; }
+.pause-menu { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; gap: 0.5rem; padding: 1.5rem; background: #111; color: #fff; border: 2px solid #fff; border-radius: 8px; z-index: 10; }
 .countdown { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 6rem; font-weight: bold; pointer-events: none; text-shadow: 0 0 8px #000; }
