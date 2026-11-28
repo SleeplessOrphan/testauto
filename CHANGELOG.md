@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Fix: when both players crash in the same cycle, the second snake no longer respawns in the path of the first (an intermittent unit test failure). Regression test in `tests/unit/respawn-path.test.ts`.
 - Pipeline (open-pipeline branch): Google's newest models (Gemini 4 Neon, Hydrogen, Carbon) added to the `models.yaml` price list, so any role can use them; price sources noted. See `docs/providers.md`.
 - Pipeline (open-pipeline branch): each role can run on OpenAI (Codex CLI) or Google (Gemini CLI) as well as Anthropic, with per-provider cost counted towards the per-task and monthly caps; the pipeline runs from whichever branch it was started on. Defaults stay all-Claude. See `docs/providers.md`.
 - Preferences (setup and sound) saved in localStorage and restored on load; Reset Settings button; app works when storage is unavailable. (#27)
