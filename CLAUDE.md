@@ -6,8 +6,9 @@ in the same change.
 
 ## What this is
 
-**Maths Snake** (see `spec/app.md`): a two-player, one-keyboard Snake game where players collect
-correct answers to maths questions. Built autonomously, one small task at a time.
+No app yet. `src/` holds only the starter page and health check; the next app is built from `spec/app.md`
+once its `status:` is `ready`, one small task at a time. (The previous app, Maths Snake, is archived under the
+git tag `maths-snake-v1`.)
 
 ## Stack
 
@@ -22,13 +23,7 @@ correct answers to maths questions. Built autonomously, one small task at a time
 | `spec/app.md` | The spec: goals, user stories, acceptance criteria. Agents never edit it. |
 | `src/app/` | Pages and routes (App Router). `page.tsx` is the home page. |
 | `src/app/api/health/route.ts` | Health check used by the staging smoke test. Keep it. |
-| `src/components/` | React screens: `MainMenu` switches between menu, setup, game, results, instructions and settings. |
-| `src/lib/` | Plain TypeScript logic (game rules, question generation). Keep it free of React so it is unit-testable. |
-| `src/lib/game/` | Game engine: grid constants, types, initial state, movement (`step`, `queueDirection`), scoring (`scoring.ts`), results statistics (`results.ts`), lives and respawning (`lives.ts`), mode end rules (`modes.ts`), collision (`resolveCollisions`), obstacle generation (`obstacles.ts`), key mapping, tick loop (`loop.ts`), `?seed=` parsing. |
-| `src/lib/render/` | Canvas drawing (no game logic). `src/hooks/` holds React hooks (keyboard, reduced motion). |
-| `src/lib/audio/` | Web Audio sound synthesis (`sounds.ts`); see `docs/settings.md`. |
-| `src/lib/settings/` | `GameSettings` types, gameplay difficulty levels (`gameplay.ts`), setup defaults and validation (`buildSettings`), saved preferences in localStorage (`storage.ts`). |
-| `src/lib/maths/` | Question generation: `generate.ts` entry point, `topics/` per-topic generators, `distractors.ts`, `random.ts`. |
+| `src/lib/` | Plain TypeScript logic. Keep it free of React so it is unit-testable. `status.ts` feeds the starter page. |
 | `tests/unit/` | Vitest tests, `*.test.ts`. |
 | `tests/e2e/` | Playwright tests run against a local production build at `/`. |
 | `tests/smoke/` | Playwright tests run against staging after every merge. |
@@ -45,7 +40,7 @@ correct answers to maths questions. Built autonomously, one small task at a time
 
 ## Conventions
 
-- Put game and maths logic in `src/lib/` as pure functions; components only render and handle input.
+- Put app logic in `src/lib/` as pure functions; components only render and handle input.
 - Tests find elements by role, label and visible text, so use semantic HTML and accessible labels.
 - Every change updates `docs/` and `CHANGELOG.md` (CI fails otherwise).
 - Keep each change under 300 lines and 10 files, not counting tests. `CHANGELOG.md`, `CLAUDE.md` and `docs/` don't count toward the 10 files.

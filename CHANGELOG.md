@@ -1,33 +1,11 @@
 # Changelog
 
 ## Unreleased
-- Preferences (setup and sound) saved in localStorage and restored on load; Reset Settings button; app works when storage is unavailable. (#27)
-- Sound effects setting (default on) with four Web Audio sounds (correct, incorrect, collision, streak); test hooks `data-sound-log` and `data-last-sound`. (#26)
-- Arcade theme (CSS variables, system fonts), snake body patterns, per-player feedback markers (`data-feedback`), collision outline and reduced-motion support (`data-reduced-motion`). (#25)
-- Pause menu (Escape, tab blur or hidden tab) with Resume (3-second countdown), Restart and Exit with confirmation, and End Game in Practice. (#24)
-- Player panel: full name and question are available as tooltips when clipped. (#23)
-- Live statistics panel: `PlayerPanel` is a named group with a labelled question and an always-visible text status. (#23)
-- Results screen with winner or draw, per-player statistics table, Play Again, Change Settings and Main Menu. (#22)
-- Game mode choice on setup (Timed, Survival, Target Score, Practice), countdown timer, target display, unlimited lives in Practice, and game end with a winner/draw placeholder. (#21)
-- Game mode rules engine (Timed, Survival, Target Score, Practice) with unlimited lives in Practice. (#20)
-- Gameplay difficulty (Easy 3 cells/s no obstacles, Medium 5/s 4 obstacles, Hard 8/s 8 obstacles) with obstacle generation, drawing and collisions. (#19)
-- Lives and respawning: three lives each, a crash respawns the snake safely (score, question and tiles kept), the last life eliminates the player; lives and crash feedback in the panel. (#18)
-- Answer streaks: +20 bonus at 5 and 10 correct in a row, streak shown next to the score, longest streak tracked. (#17)
-- Scoring: +10 and growth for a correct answer, -5 and shrinking for an incorrect one, a new question next cycle, per-player score and feedback. See `docs/game-engine.md`. (#16)
-- Each player now sees their own maths question above the board, and three answer tiles (number, colour, P1/P2) are placed on free cells reachable from their head. If there is no room the round ends with "Round over". (#15)
 
-### Fixed
-- Snakes whose heads enter the same cell now both stop, and a stopped snake's tail blocks the other snake. (#14)
+### Changed
+- Archived Maths Snake under the git tag `maths-snake-v1` and reset the app to the starter page, so the pipeline is ready for the next app. `spec/app.md` is back to the blank template (`status: draft`), and Vercel skips deploys while the spec is a draft, so the last Maths Snake deploy stays live until the next app starts. See `docs/setup.md`.
 
 ### Added
-- Canvas game screen with countdown, fixed-rate loop and keyboard controls. See `docs/game-screen.md`. (#14)
-- Simultaneous collision detection (`src/lib/game/collision.ts`); `step()` reports collided players. See `docs/game-engine.md`. A head proposed onto the snake's own neck (a reversal) is not a self-collision. (#11)
-- Game setup screen with names, per-player difficulty and topics, validation and a placeholder game screen. See `docs/game-setup.md`. (#13)
-- Main menu with Play, Instructions and Settings screens replacing the starter page. (#12)
-- Combined the maths question code from tasks #8 and #9, which were built side by side and merged into each other's files. `generateQuestion` now serves the arithmetic topics plus percentages and mixed operations.
-- Snake movement engine on a 40 x 25 grid in `src/lib/game/`; see `docs/game-engine.md`.
-- Maths question generator (`src/lib/maths/`) with percentage and mixed-operation topics. See `docs/maths-questions.md`.
-- Maths question generation (addition, subtraction, multiplication, division, squares, square roots) by difficulty in `src/lib/maths/`. See `docs/maths-questions.md`. (#8)
 - `CLAUDE.md` project map that every agent reads first, kept current by the coder.
 - The planner saves each plan on a "Planner output" issue and reuses it if a run fails, instead of paying to plan again.
 - npm and Playwright browser caching in every workflow that runs the tests.
