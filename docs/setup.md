@@ -47,3 +47,14 @@ so they should be there once it has been open for a few minutes.
 
 You can watch it under the **Actions** tab and on the **Issues** tab (each task is an issue).
 To stop everything, open an issue and add the label `pause`. Close it to carry on.
+
+## Starting the next app
+
+The repo holds one app at a time. When an app is finished, it is archived under a git tag (Maths Snake is
+`maths-snake-v1`; to look at it, open the **Code** tab, click the branch dropdown, choose **Tags** and pick
+the tag) and the app is reset to the starter page: `src/` has only the home page and health check, `tests/`
+only the starter tests, and `spec/app.md` is the blank template with `status: draft`.
+
+While the spec says `draft`, nothing runs: the planner skips without calling a model, and Vercel skips
+deploys (`ignoreCommand` in `vercel.json`), so the last deploy of the previous app stays live. The first push
+to main after the spec is marked `ready` deploys again and replaces it. To start, follow step 5 above.
