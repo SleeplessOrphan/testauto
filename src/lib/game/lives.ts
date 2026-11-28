@@ -80,17 +80,8 @@ export function loseLife(
   });
   if (!practice && lives <= 0) return eliminate();
 
-  // The cells just ahead of another snake's head count as taken too, so the respawn never lands in
-  // the path of a snake that respawned a moment earlier (both players crash in the same cycle).
-  const paths = others.flatMap((s) =>
-    Array.from({ length: CLEAR_AHEAD }, (_, i) => ({
-      x: s.segments[0].x + DELTAS[s.direction].x * (i + 1),
-      y: s.segments[0].y + DELTAS[s.direction].y * (i + 1),
-    })).filter(inGrid),
-  );
   const blockers = [
     ...others.flatMap((s) => s.segments),
-    ...paths,
     ...(state.obstacles ?? []),
     ...(state.tiles ?? []),
   ];

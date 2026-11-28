@@ -18,9 +18,6 @@ async function start(page: Page) {
   await g2.getByLabel("Name").fill("Bob");
   await g1.getByLabel("Addition").check();
   await g2.getByLabel("Addition").check();
-  // Practice gives unlimited lives: player 2 keeps crashing while parked, and in a timed game a slow
-  // run could use up its three lives, which removes its tiles and breaks the "unchanged" checks.
-  await page.getByRole("group", { name: "Game mode", exact: true }).getByLabel("Practice").check();
   await page.getByRole("button", { name: "Start Game", exact: true }).click();
   await expect(page.getByTestId("game")).toHaveAttribute("data-phase", "running", { timeout: 10_000 });
   // Park player 2 against the top wall so it stays out of the way.
