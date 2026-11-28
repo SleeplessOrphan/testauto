@@ -47,7 +47,7 @@ message saying which secret to add, and nothing is spent.
 2. Open `models.yaml` and click the pencil icon.
 3. Change the role's line. For example, to make an OpenAI model the reviewer:
    `adversary_review: { provider: openai, model: gpt-6.2-sol, max_turns: 40, effort: medium }`
-   or a Google model: `adversary_review: { provider: google, model: gemini-4-argon, max_turns: 40 }`
+   or a Google model: `adversary_review: { provider: google, model: gemini-4-neon, max_turns: 40 }`
 4. Click **Commit changes**, choose **Commit directly to the open-pipeline branch**, and confirm.
 
 The model must be listed under `prices` in the same file (several are already there). If it isn't, add a
@@ -104,5 +104,7 @@ planner, run **planner** from the Actions tab with **Use workflow from** set to 
 - `effort` works for OpenAI (`low`, `medium`, `high`, `xhigh`) but is ignored for Google.
 - `max_turns` works for Google (Gemini CLI's session turn limit) but not for OpenAI, which uses the time
   limit above.
-- Prices in `models.yaml` were taken from a price-comparison site on 27 Nov 2026, not from the providers.
-  Check them on the provider's pricing page before you rely on them.
+- On 28 Nov 2026 the GPT-6.2 prices in `models.yaml` were checked against OpenAI's own pricing page and
+  match. Google's pricing page doesn't list Gemini 4 yet, so the Gemini 4 prices (Neon, Hydrogen, Carbon,
+  Argon) still come from price-comparison sites. Check them on the provider's pricing page before you
+  rely on them. A wrong price only changes what the caps count, not what the provider charges.
