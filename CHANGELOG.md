@@ -18,18 +18,10 @@
 - Scoring: +10 and growth for a correct answer, -5 and shrinking for an incorrect one, a new question next cycle, per-player score and feedback. See `docs/game-engine.md`. (#16)
 - Each player now sees their own maths question above the board, and three answer tiles (number, colour, P1/P2) are placed on free cells reachable from their head. If there is no room the round ends with "Round over". (#15)
 
-### Fixed
-- Snakes whose heads enter the same cell now both stop, and a stopped snake's tail blocks the other snake. (#14)
+### Changed
+- Archived Maths Snake under the git tag `maths-snake-v1` and reset the app to the starter page, so the pipeline is ready for the next app. `spec/app.md` is back to the blank template (`status: draft`), and Vercel skips deploys while the spec is a draft, so the last Maths Snake deploy stays live until the next app starts. See `docs/setup.md`.
 
 ### Added
-- Canvas game screen with countdown, fixed-rate loop and keyboard controls. See `docs/game-screen.md`. (#14)
-- Simultaneous collision detection (`src/lib/game/collision.ts`); `step()` reports collided players. See `docs/game-engine.md`. A head proposed onto the snake's own neck (a reversal) is not a self-collision. (#11)
-- Game setup screen with names, per-player difficulty and topics, validation and a placeholder game screen. See `docs/game-setup.md`. (#13)
-- Main menu with Play, Instructions and Settings screens replacing the starter page. (#12)
-- Combined the maths question code from tasks #8 and #9, which were built side by side and merged into each other's files. `generateQuestion` now serves the arithmetic topics plus percentages and mixed operations.
-- Snake movement engine on a 40 x 25 grid in `src/lib/game/`; see `docs/game-engine.md`.
-- Maths question generator (`src/lib/maths/`) with percentage and mixed-operation topics. See `docs/maths-questions.md`.
-- Maths question generation (addition, subtraction, multiplication, division, squares, square roots) by difficulty in `src/lib/maths/`. See `docs/maths-questions.md`. (#8)
 - `CLAUDE.md` project map that every agent reads first, kept current by the coder.
 - The planner saves each plan on a "Planner output" issue and reuses it if a run fails, instead of paying to plan again.
 - npm and Playwright browser caching in every workflow that runs the tests.
